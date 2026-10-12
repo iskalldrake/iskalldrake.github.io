@@ -1,0 +1,41 @@
+/* Färger samlade på ett ställe, så du byter tema genom att ändra här */
+:root {
+  --bakgrund: #f5f3ff;
+  --text: #1f1b2e;
+  --lila: #0f766e;
+  --kort: #ffffff;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background: var(--bakgrund);
+  color: var(--text);
+  max-width: 720px;      /* raderna blir inte för långa på stora skärmar */
+  margin: 0 auto;        /* centrerar sidan */
+  padding: 16px;
+  line-height: 1.6;
+}
+
+h1, h2 {
+  color: var(--lila);
+}
+
+.kort {
+  background: var(--kort);
+  border-left: 4px solid var(--lila);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.taggar {
+  font-size: 0.9em;
+  color: var(--lila);
+}
+
+footer {
+  margin-top: 32px;
+  font-size: 0.9em;
+  opacity: 0.7;
+}
