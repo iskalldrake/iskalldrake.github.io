@@ -1,5 +1,6 @@
 /* Färger samlade på ett ställe, så du byter tema genom att ändra här */
 :root {
+  color-scheme: light dark;
   --bakgrund: #14111f;
   --text: #e6e1f5;
   --lila: #a78bfa;
@@ -38,4 +39,18 @@ footer {
   margin-top: 32px;
   font-size: 0.9em;
   opacity: 0.7;
+}
+
+/* Ljust tema för besökare som har ljust läge i datorn */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bakgrund: #f5f3ff;
+    --text: #1f1b2e;
+    --lila: #6d28d9;
+    --kort: #ffffff;
+  }
+
+  .kort {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
 }
