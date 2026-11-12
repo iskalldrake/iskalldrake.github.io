@@ -4,44 +4,215 @@
   <!-- head = information OM sidan, syns inte på själva sidan -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hannes – projekt</title>
+  <title>Hannes – projekt och lärande</title>
+  <meta name="description" content="Hannes portfölj: projekt i Python, HTML och JavaScript, och vägen mot CompTIA A+ och ett jobb inom IT-support.">
+  <!-- Allt utseende ligger i style.css. Byt den filen så byter du design. -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- body = allt som syns -->
-  <header>
-    <h1>Hej, jag heter Hannes</h1>
-    <p>Jag lär mig programmering och IT och siktar på ett jobb inom IT-support (CompTIA A+).
+
+  <!-- ===== HUVUDET: namn, kort presentation och meny ===== -->
+  <header class="topp">
+    <p class="hej">Hej, jag heter</p>
+    <h1>Hannes</h1>
+    <p class="ingress">Jag lär mig programmering och IT och siktar på ett jobb inom IT-support (CompTIA A+).
        Här samlar jag det jag bygger, på både Windows och Ubuntu.</p>
+
+    <!-- Menyn. href="#projekt" hoppar till elementet som har id="projekt" längre ner -->
+    <nav class="meny" aria-label="Innehåll">
+      <a href="#prova">Prova själv</a>
+      <a href="#projekt">Projekt</a>
+      <a href="#larande">Lärande</a>
+      <a href="#tidslinje">Tidslinje</a>
+    </nav>
   </header>
 
   <main>
-    <h2>Mina projekt</h2>
 
-    <article class="kort">
-      <h3>01 – Filsorterare</h3>
-      <p>Python-skript som sorterar filer i mappar efter filtyp. Fungerar på Windows och Ubuntu.</p>
-      <p class="taggar">Python · pathlib · skript</p>
-    </article>
+    <!-- ===== PROVA SJÄLV: projekt som går att använda direkt i webbläsaren ===== -->
+    <section id="prova">
+      <h2>Prova själv</h2>
+      <p class="under">De här två körs direkt här på sidan. Inget att installera.</p>
 
-    <article class="kort">
-      <h3>02 – Den här sidan</h3>
-      <p>Min portfölj, skriven i HTML och CSS och publicerad gratis med GitHub Pages.</p>
-      <p class="taggar">HTML · CSS · Git · GitHub Pages</p>
-    </article>
+      <div class="prova-rad">
+        <!-- Hela kortet är en länk (a-taggen ligger runt allt) -->
+        <a class="prova-kort" href="varldskarta/index.html">
+          <span class="ikon" aria-hidden="true">🌍</span>
+          <h3>Världskartan</h3>
+          <p>Ett 3D-klot du kan snurra. Quiz om länder, huvudstäder och hav.</p>
+          <span class="knapp">Spela →</span>
+        </a>
 
-    <h2>Det här lär jag mig just nu</h2>
-    <ul>
-      <li>Git och GitHub</li>
-      <li>Python</li>
-      <li>Windows och Linux från terminalen</li>
-      <li>CompTIA A+</li>
-      <li>Använding av AI</li>
-    </ul>
+        <a class="prova-kort" href="danska/index.html">
+          <span class="ikon" aria-hidden="true">🇩🇰</span>
+          <h3>Danska ord</h3>
+          <p>Min egen lärapp för danska: skriv, quiz, flashcards och survivor.</p>
+          <span class="knapp">Öva →</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ===== PROJEKT: ett article-kort per projekt =====
+         Nytt projekt? Kopiera ett helt <article> ... </article> och ändra texten. -->
+    <section id="projekt">
+      <h2>Mina projekt</h2>
+
+      <div class="kort-rutnat">
+
+        <article class="kort">
+          <p class="nummer">01</p>
+          <h3>Filsorterare</h3>
+          <p>Python-skript som flyttar filer till mappar efter filtyp (bilder, dokument, video).
+             Kan ta med lösa mappar och bara röra filer som är äldre än ett visst antal timmar. Inget raderas.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> pathlib, så att samma kod funkar på Windows och Ubuntu, och att testa på påhittade filer först.</p>
+          <p class="taggar">Python · pathlib · terminal</p>
+          <p class="status klar">Fungerar</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">02</p>
+          <h3>Den här sidan</h3>
+          <p>Min portfölj i HTML och CSS, publicerad gratis med GitHub Pages.
+             Den följer datorns ljusa eller mörka läge.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> HTML, CSS-variabler, Git och skillnaden mellan ett publikt och ett privat repo.</p>
+          <p class="taggar">HTML · CSS · Git · GitHub Pages</p>
+          <p class="status pagar">Byggs ut</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">03</p>
+          <h3>Felsökningsäventyret</h3>
+          <p>Ett textäventyr i terminalen. Du är ny på IT-supporten och en dator startar inte.
+             Gå mellan rummen, hitta delar och tolka pipkoderna.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> dictionaries, while-loopar, if-satser och funktioner.</p>
+          <p class="taggar">Python · spel · IT-support</p>
+          <p class="status klar">Klart</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">04</p>
+          <h3>Flashcards för A+</h3>
+          <p>Plugga CompTIA A+ i terminalen: 192 kort och 187 provfrågor med förklaring
+             till varje svarsalternativ. Har dagens pass och statistik.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> JSON-filer, kommandoradsflaggor och att spara framsteg mellan körningar.</p>
+          <p class="taggar">Python · JSON · CompTIA A+</p>
+          <p class="status klar">Klart</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">08</p>
+          <h3>Danska ord</h3>
+          <p>Lärapp i webbläsaren med 100 ord som låses upp tio åt gången, lådor 0–5,
+             teman och dagsstreak. <a href="danska/index.html">Prova den här</a>.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> JavaScript, localStorage och att felsöka animationer som bara blinkade i Firefox.</p>
+          <p class="taggar">HTML · CSS · JavaScript</p>
+          <p class="status pagar">Byggs ut</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">09</p>
+          <h3>Klickbar världskarta</h3>
+          <p>Kartquiz på ett 3D-klot, byggt med riktig kartdata från Natural Earth.
+             Ett Python-skript gör om rådatan till en fil som sidan läser. <a href="varldskarta/index.html">Prova den här</a>.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> virtuella miljöer och pip, GeoJSON och att rita kartor med d3-geo.</p>
+          <p class="taggar">JavaScript · d3-geo · Python</p>
+          <p class="status pagar">Byggs ut</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">20</p>
+          <h3>LoL Replay</h3>
+          <p>Windows-app som spelar in mina League of Legends-matcher automatiskt med OBS,
+             döper filen efter matchen och gör YouTube-kapitel och en egen miniatyrbild.
+             Har inbyggd videospelare och matchhistorik.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> API:er, WebSocket, trådar (så att fönstret inte laggar) och bildbehandling med Pillow.</p>
+          <p class="taggar">Python · tkinter · OBS · API</p>
+          <p class="status klar">Används</p>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ===== LÄRANDE: A+-framsteg och vad jag lär mig ===== -->
+    <section id="larande">
+      <h2>Lärande</h2>
+
+      <div class="aplus">
+        <h3>Vägen mot CompTIA A+</h3>
+        <p>A+ är två prov: <strong>Core 1</strong> (220-1201: hårdvara, nätverk, mobila enheter, moln, felsökning)
+           och <strong>Core 2</strong> (220-1202: operativsystem, säkerhet, mjukvara, arbetsrutiner).
+           Jag följer en studieplan på 70 dagar.</p>
+
+        <!-- ÄNDRA HÄR när du bockat av dagar i framsteg.md:
+             ändra value="0" till antal klara dagar, och siffran i texten under. -->
+        <label class="mataretikett" for="aplus-matare">Studieplanen: <strong>dag 0 av 70</strong></label>
+        <progress id="aplus-matare" value="0" max="70">0 av 70</progress>
+
+        <!-- Kapitlen. Lägg till class="klar" på li när du har läst ett kapitel. -->
+        <div class="faser">
+          <div>
+            <h4>Core 1</h4>
+            <ol class="kapitel">
+              <li>Hårdvara</li>
+              <li>Nätverk</li>
+              <li>Mobila enheter</li>
+              <li>Virtualisering och moln</li>
+              <li>Felsökning</li>
+            </ol>
+          </div>
+          <div>
+            <h4>Core 2</h4>
+            <ol class="kapitel" start="6">
+              <li>Operativsystem</li>
+              <li>Säkerhet</li>
+              <li>Mjukvarufelsökning</li>
+              <li>Arbetsrutiner</li>
+              <li>Inför provet</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Det jag har byggt för att plugga -->
+        <ul class="siffror">
+          <li><span>10</span> kapitel i min egen studiebok</li>
+          <li><span>187</span> provfrågor med förklaringar</li>
+          <li><span>192</span> flashcards</li>
+        </ul>
+      </div>
+
+      <h3>Det här lär jag mig just nu</h3>
+      <ul class="amnen">
+        <li>Git och GitHub</li>
+        <li>Python</li>
+        <li>HTML, CSS och JavaScript</li>
+        <li>PowerShell och Windows</li>
+        <li>Ubuntu och bash</li>
+        <li>Nätverk</li>
+        <li>Användning av AI</li>
+        <li>Danska</li>
+      </ul>
+    </section>
+
+    <!-- ===== TIDSLINJE: viktiga steg, nyaste överst ===== -->
+    <section id="tidslinje">
+      <h2>Tidslinje</h2>
+      <ol class="tidslinje">
+        <li><time datetime="2026-11-12">12 nov 2026</time> Flyttade alla projekt till en ny disk och lade in världskartan och danska-appen här.</li>
+        <li><time datetime="2026-11-10">10 nov 2026</time> Min A+-studiebok blev klar: alla 10 kapitel och 187 provfrågor.</li>
+        <li><time datetime="2026-11-04">4 nov 2026</time> LoL Replay fick matchhistorik från LoL-klientens API.</li>
+        <li><time datetime="2026-10-29">29 okt 2026</time> LoL Replay spelade in min första match helt av sig själv.</li>
+        <li><time datetime="2026-10-18">18 okt 2026</time> Danska-appen fick 100 ord och mörkt tema.</li>
+        <li><time datetime="2026-10-15">15 okt 2026</time> Flashcards för A+ i terminalen.</li>
+        <li><time datetime="2026-10-13">13 okt 2026</time> Den här sidan gick live, och felsökningsäventyret blev klart.</li>
+        <li><time datetime="2026-10-12">12 okt 2026</time> Började: mitt första Git-repo och filsorteraren.</li>
+      </ol>
+    </section>
+
   </main>
 
   <footer>
-    <p>Byggd av Hannes · 2026</p>
+    <p>Byggd av Hannes · 2026 · <a href="https://github.com/iskalldrake">GitHub</a></p>
   </footer>
 </body>
 </html>

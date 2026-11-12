@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kartquiz med karta</title>
+<style>
+  /* DEL 1: UTSEENDE (CSS) */
+  body { font-family: system-ui, sans-serif; background: #f6f8fb; color: #14233d; margin: 0; }
+  main { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+  h1 { margin-bottom: 4px; }
+  .tips { color: #51607a; font-size: 0.9rem; margin: 4px 0 8px; }
+
+  /* Kartan ligger i en ruta, så att zoomknapparna kan läggas ovanpå den */
+  .kartruta { position: relative; }
+  #karta { width: 100%; display: block; background: #cfe6f7; border-radius: 12px;
+           border: 1px solid #b8c4d6; cursor: grab; touch-action: none; user-select: none; }
+  #karta.drar { cursor: grabbing; }
+
+  /* vector-effect gör att linjerna behåller samma tjocklek när man zoomar */
+  #karta path { fill: #e8e2cf; stroke: #9a9482; stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+  #karta path.markerad { fill: #d4006f; stroke: #7a0040; stroke-width: 1.5; }
+  #ring { fill: none; stroke: #d4006f; stroke-width: 3; vector-effect: non-scaling-stroke;
+          pointer-events: none; display: none; }
+  /* Pricken som visar var huvudstaden ligger (visas efter att du svarat) */
+  #prick { fill: #14233d; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke;
+           pointer-events: none; display: none; }
+  #facit { min-height: 1.5em; margin: 12px 0 4px; font-weight: 600; }
+
+  /* Zoomknapparna uppe till höger på kartan */
+  .zoomknappar { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .zoomknappar button { padding: 6px 10px; font-size: 1.1rem; min-width: 40px; }
+
+  #fraga { font-size: 1.3rem; margin: 16px 0; }
+  .knappar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  button { padding: 12px; font-size: 1rem; border: 1px solid #b8c4d6;
+           border-radius: 10px; background: #fff; cursor: pointer; }
+  button:hover:enabled { background: #eef3fa; }
+  .ratt { background: #c8f0d6; }
+  .fel { background: #f6c9c9; }
+  #nasta { grid-column: 1 / -1; background: #d4006f; color: #fff; border: none; display: none; }
+  @media (max-width: 500px) { .knappar { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<!-- Tillbaka till portföljen (lagt till när appen flyttades in på iskalldrake.github.io) -->
+<a href="../index.html" style="position:fixed;left:12px;bottom:12px;z-index:50;padding:6px 12px;border-radius:99px;font:14px system-ui,sans-serif;text-decoration:none;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2)">← Portfölj</a>
+
+<main>
+  <!-- DEL 2: INNEHÅLL (HTML) -->
+  <h1>Kartquiz</h1>
+  <div id="status"></div>
+  <div class="tips">Zooma med mushjulet eller knapparna, dra med musen för att flytta kartan.</div>
+
+  <div class="kartruta">
+    <!-- Kartan ritas här. viewBox är "fönstret" in i ritytan (1440 x 720 pixlar).
+         Zoomar vi, gör vi fönstret mindre – då fyller det mindre området hela skärmen. -->
+    <svg id="karta" viewBox="0 0 1440 720"></svg>
+    <div class="zoomknappar">
+      <button id="zoomIn" title="Zooma in">+</button>
+      <button id="zoomUt" title="Zooma ut">−</button>
+      <button id="zoomVisa" title="Zooma in på det markerade landet">🔍</button>
+      <button id="zoomAterstall" title="Visa hela världen">🌍</button>
+    </div>
+  </div>
+
+  <div id="fraga"></div>
+  <div class="knappar" id="svar"></div>
+  <div id="facit"></div>
+  <div class="knappar"><button id="nasta">Nästa fråga</button></div>
+</main>
+
+<!-- Här läser vi in kartdatan som Python-skriptet skapade (listan "länder") -->
+<script src="kartdata.js"></script>
+
+<script>
+  // DEL 3: LOGIK (JavaScript)
+
+  // ---------- Inställningar: ändra här och testa! ----------
+  const ANTAL_FRAGOR = 10;    // hur många frågor i en runda
+  const BARA_STORA = true;   // true = bara stora länder, false = alla (även små, då behöver du zooma)
+  const ANDEL_HUVUDSTAD = 0.2; // hur stor del av frågorna som handlar om huvudstäder (0 = inga, 1 = alla)
+  const NARA = 6;             // felalternativen väljs bland de NARA närmaste grannländerna
+  const MAX_ZOOM = 40;        // hur mycket man får zooma in
+  // ----------------------------------------------------------
+
+  const BREDD = 1440, HOJD = 720;   // kartans hela storlek
+
+  function blanda(lista) {
+    return [...lista].sort(() => Math.random() - 0.5);
+  }
+
+  // --- Steg A: rita alla länder på kartan ---
+  const karta = document.getElementById("karta");
+  const NS = "http://www.w3.org/2000/svg";
+  for (const land of länder) {
+    const form = document.createElementNS(NS, "path");
+    form.setAttribute("d", land.path);
+    land.element = form;
+    karta.appendChild(form);
+  }
+  // En ring som visas runt små länder, så att de går att hitta
+  const ring = document.createElementNS(NS, "circle");
+  ring.setAttribute("id", "ring");
+  karta.appendChild(ring);
+  // En prick som visar var huvudstaden ligger
+  const prick = document.createElementNS(NS, "circle");
+  prick.setAttribute("id", "prick");
+  karta.appendChild(prick);
+
+  // --- Steg B: zoom och förflyttning ---
+  // "vy" är den del av kartan vi tittar på just nu: x och y är övre vänstra hörnet,
+  // w är bredden. Höjden är alltid hälften av bredden (kartan är dubbelt så bred som hög).
+  let vy = { x: 0, y: 0, w: BREDD };
+
+  function visaVy() {
+    // Håll oss inom kartan så att man inte kan dra bort den
+    vy.w = Math.min(BREDD, Math.max(BREDD / MAX_ZOOM, vy.w));
+    const h = vy.w / 2;
+    vy.x = Math.min(BREDD - vy.w, Math.max(0, vy.x));
+    vy.y = Math.min(HOJD - h, Math.max(0, vy.y));
+    karta.setAttribute("viewBox", `${vy.x} ${vy.y} ${vy.w} ${h}`);
+    uppdateraRing();
+  }
+
+  // Zooma med en faktor (2 = dubbelt så nära) runt en punkt (mx, my) på kartan.
+  // Punkten under musen ska stanna kvar under musen – därför flyttar vi x och y också.
+  function zooma(faktor, mx, my) {
+    const nyW = Math.min(BREDD, Math.max(BREDD / MAX_ZOOM, vy.w / faktor));
+    const andel = nyW / vy.w;
+    vy.x = mx - (mx - vy.x) * andel;
+    vy.y = my - (my - vy.y) * andel;
+    vy.w = nyW;
+    visaVy();
+  }
+
+  // Gör om en musposition på skärmen till en position på kartan
+  function skarmTillKarta(klientX, klientY) {
+    const r = karta.getBoundingClientRect();
+    return {
+      x: vy.x + (klientX - r.left) / r.width * vy.w,
+      y: vy.y + (klientY - r.top) / r.height * (vy.w / 2),
+    };
+  }
+
+  // Mushjulet
+  karta.addEventListener("wheel", (e) => {
+    e.preventDefault();                       // hindra sidan från att scrolla
+    const p = skarmTillKarta(e.clientX, e.clientY);
+    zooma(e.deltaY < 0 ? 1.25 : 1 / 1.25, p.x, p.y);
+  }, { passive: false });
+
+  // Dra med musen (eller fingret) för att flytta kartan
+  let drag = null;
+  karta.addEventListener("pointerdown", (e) => {
+    drag = { klientX: e.clientX, klientY: e.clientY, x: vy.x, y: vy.y };
+    karta.setPointerCapture(e.pointerId);
+    karta.classList.add("drar");
+  });
+  karta.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const r = karta.getBoundingClientRect();
+    const skala = vy.w / r.width;             // hur många kartpixlar en skärmpixel motsvarar
+    vy.x = drag.x - (e.clientX - drag.klientX) * skala;
+    vy.y = drag.y - (e.clientY - drag.klientY) * skala;
+    visaVy();
+  });
+  const slutaDra = () => { drag = null; karta.classList.remove("drar"); };
+  karta.addEventListener("pointerup", slutaDra);
+  karta.addEventListener("pointercancel", slutaDra);
+
+  // Knapparna
+  const mittenX = () => vy.x + vy.w / 2;
+  const mittenY = () => vy.y + vy.w / 4;
+  document.getElementById("zoomIn").onclick = () => zooma(1.6, mittenX(), mittenY());
+  document.getElementById("zoomUt").onclick = () => zooma(1 / 1.6, mittenX(), mittenY());
+  document.getElementById("zoomAterstall").onclick = aterstallVy;
+  document.getElementById("zoomVisa").onclick = () => zoomaTillLand(aktuellt);
+
+  function aterstallVy() {
+    vy = { x: 0, y: 0, w: BREDD };
+    visaVy();
+  }
+
+  // Zooma in så att landet ligger i mitten och tar ungefär en tredjedel av bilden
+  function zoomaTillLand(land) {
+    const [x, y, b, h] = land.ruta;
+    vy.w = Math.max(b * 3, h * 6, 120);       // minst 120 så att pyttesmå länder inte blir för stora
+    vy.x = x + b / 2 - vy.w / 2;
+    vy.y = y + h / 2 - vy.w / 4;
+    visaVy();
+  }
+
+  // Ringen runt det markerade landet (syns bara när landet är litet på skärmen)
+  // och pricken för huvudstaden (syns när du har svarat).
+  function uppdateraRing() {
+    if (!aktuellt) return;
+    const [x, y, b, h] = aktuellt.ruta;
+    const pxPerEnhet = karta.getBoundingClientRect().width / vy.w;
+
+    // Landet är "avslöjat" om frågan handlar om kartan, eller när du har svarat
+    const avslojat = frågetyp === "karta" || besvarad;
+    const landetsStorlekPx = Math.max(b, h) * pxPerEnhet;
+    if (avslojat && landetsStorlekPx <= 40) {
+      ring.setAttribute("cx", x + b / 2);
+      ring.setAttribute("cy", y + h / 2);
+      ring.setAttribute("r", 22 / pxPerEnhet);   // alltid 22 skärmpixlar, oavsett zoom
+      ring.style.display = "block";
+    } else {
+      ring.style.display = "none";
+    }
+
+    if (besvarad && aktuellt.huvudstadPos) {
+      prick.setAttribute("cx", aktuellt.huvudstadPos[0]);
+      prick.setAttribute("cy", aktuellt.huvudstadPos[1]);
+      prick.setAttribute("r", 5 / pxPerEnhet);   // alltid 5 skärmpixlar
+      prick.style.display = "block";
+    } else {
+      prick.style.display = "none";
+    }
+  }
+  window.addEventListener("resize", uppdateraRing);
+
+  // --- Steg C: frågorna ---
+  const möjliga = länder.filter(l => l.val && (!BARA_STORA || l.stor));
+  const landMedNamn = Object.fromEntries(länder.map(l => [l.namn, l]));
+
+  // Bygg listan med frågor. Varje fråga har en typ och ett land:
+  //   "karta"     = landet är markerat på kartan, vilket land är det?
+  //   "huvudstad" = vi nämner huvudstaden, vilket land har den?
+  // Först bestämmer vi hur många av varje typ, och blandar ordningen.
+  const antalHuvudstad = Math.round(ANTAL_FRAGOR * ANDEL_HUVUDSTAD);
+  const typer = blanda([
+    ...Array(antalHuvudstad).fill("huvudstad"),
+    ...Array(ANTAL_FRAGOR - antalHuvudstad).fill("karta"),
+  ]);
+  const blandadeLander = blanda(möjliga);
+  const medHuvudstad = blandadeLander.filter(l => l.huvudstad);   // alla länder har inte en huvudstad i datan
+  const anvanda = new Set();           // så att samma land inte kommer två gånger
+  const frågor = [];
+  for (const typ of typer) {
+    const lista = typ === "huvudstad" ? medHuvudstad : blandadeLander;
+    const land = lista.find(l => !anvanda.has(l));
+    if (!land) continue;
+    anvanda.add(land);
+    frågor.push({ typ, land });
+  }
+
+  let nr = 0;
+  let poäng = 0;
+  let aktuellt = null;       // landet vi frågar om just nu
+  let frågetyp = "karta";    // "karta" eller "huvudstad"
+  let besvarad = false;      // har du svarat på frågan än?
+
+  function visaFraga() {
+    if (aktuellt) aktuellt.element.classList.remove("markerad");
+    const fraga = frågor[nr];
+    aktuellt = fraga.land;
+    frågetyp = fraga.typ;
+    besvarad = false;
+    aterstallVy();                             // börja alltid med hela världen
+
+    document.getElementById("status").textContent =
+      "Fråga " + (nr + 1) + " av " + frågor.length + " – Poäng: " + poäng;
+    document.getElementById("facit").textContent = "";
+    document.getElementById("nasta").style.display = "none";
+
+    if (frågetyp === "karta") {
+      aktuellt.element.classList.add("markerad");   // färga landet rosa
+      document.getElementById("fraga").textContent = "Vilket land är markerat?";
+    } else {
+      // Två olika sätt att fråga. Vi slumpar vilket som används.
+      const h = aktuellt.huvudstad;
+      document.getElementById("fraga").textContent = Math.random() < 0.5
+        ? "Vilket land har huvudstaden " + h + "?"
+        : "I vilket land ligger huvudstaden " + h + "?";
+    }
+    // Knappen 🔍 skulle avslöja svaret på huvudstadsfrågor, så den göms tills du har svarat
+    document.getElementById("zoomVisa").style.display = frågetyp === "karta" ? "" : "none";
+    uppdateraRing();
+
+    // Felalternativ: tre slumpade bland de NARA närmaste grannländerna.
+    // "grannar" kommer från Python-skriptet och är sorterad med närmast först.
+    const fel = blanda(aktuellt.grannar.slice(0, NARA)).slice(0, 3);
+
+    const ruta = document.getElementById("svar");
+    ruta.innerHTML = "";
+    for (const namn of blanda([aktuellt.namn, ...fel])) {
+      const knapp = document.createElement("button");
+      knapp.textContent = namn;
+      knapp.onclick = () => svara(knapp, namn === aktuellt.namn);
+      ruta.appendChild(knapp);
+    }
+  }
+
+  function svara(knapp, ärRätt) {
+    if (ärRätt) { poäng++; knapp.classList.add("ratt"); }
+    else { knapp.classList.add("fel"); }
+    for (const k of document.querySelectorAll("#svar button")) {
+      if (k.textContent === aktuellt.namn) k.classList.add("ratt");
+      k.disabled = true;
+    }
+    // Visa facit: markera landet på kartan, sätt ut huvudstaden och skriv vad som gäller
+    besvarad = true;
+    aktuellt.element.classList.add("markerad");
+    document.getElementById("zoomVisa").style.display = "";
+    document.getElementById("facit").textContent = aktuellt.huvudstad
+      ? aktuellt.namn + " – huvudstad: " + aktuellt.huvudstad
+      : aktuellt.namn;
+    uppdateraRing();
+    document.getElementById("nasta").style.display = "block";
+  }
+
+  document.getElementById("nasta").onclick = () => {
+    nr++;
+    if (nr < frågor.length) { visaFraga(); }
+    else { slut(); }
+  };
+
+  function slut() {
+    aktuellt.element.classList.remove("markerad");
+    ring.style.display = "none";
+    prick.style.display = "none";
+    aktuellt = null;
+    aterstallVy();
+    document.getElementById("facit").textContent = "";
+    document.getElementById("zoomVisa").style.display = "none";
+    document.getElementById("status").textContent = "Klart!";
+    document.getElementById("fraga").textContent =
+      "Du fick " + poäng + " av " + frågor.length + " rätt.";
+    document.getElementById("svar").innerHTML = "";
+    document.getElementById("nasta").style.display = "none";
+  }
+
+  visaFraga();   // starta spelet
+</script>
+</body>
+</html>

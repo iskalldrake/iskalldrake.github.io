@@ -1,56 +1,249 @@
-/* Färger samlade på ett ställe, så du byter tema genom att ändra här */
-:root {
-  color-scheme: light dark;
-  --bakgrund: #14111f;
-  --text: #e6e1f5;
-  --lila: #a78bfa;
-  --kort: #1f1a30;
-}
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&display=swap");
+
+/* style.css – hela utseendet för portföljen.
+   DEL 1 = grunden (layout). DEL 2 = designen (färger, typsnitt, effekter). */
+
+/* ============================================================
+   DEL 1: GRUNDEN (samma i alla designer)
+   Här står hur saker ligger på sidan: bredd, mellanrum, rutnät.
+   Färger och typsnitt står i DEL 2 längre ner.
+   ============================================================ */
+
+/* box-sizing: border-box gör att padding räknas in i bredden,
+   så att rutor inte blir bredare än man tror */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }          /* mjuk scroll när du klickar i menyn */
 
 body {
-  font-family: system-ui, sans-serif;
+  margin: 0;
   background: var(--bakgrund);
   color: var(--text);
-  max-width: 720px;      /* raderna blir inte för långa på stora skärmar */
-  margin: 0 auto;        /* centrerar sidan */
-  padding: 16px;
+  font-family: var(--brodtext);
   line-height: 1.6;
 }
 
-h1, h2 {
-  color: var(--lila);
+/* Sidans innehåll blir max 960 px brett och hamnar i mitten */
+.topp, main, footer {
+  max-width: 960px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
-.kort {
-  background: var(--kort);
-  border-left: 4px solid var(--lila);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+a { color: var(--accent); }
+
+h1, h2, h3, h4 { font-family: var(--rubriktext); line-height: 1.2; }
+
+/* ----- Huvudet ----- */
+.topp { padding-top: 64px; padding-bottom: 40px; }
+.hej { margin: 0; color: var(--dov); }
+h1 { margin: 0 0 12px; font-size: clamp(2.6rem, 9vw, 4.5rem); }   /* clamp = minst, helst, högst */
+.ingress { max-width: 60ch; font-size: 1.1rem; margin: 0 0 24px; }
+
+.meny { display: flex; flex-wrap: wrap; gap: 8px; }
+.meny a { text-decoration: none; padding: 6px 14px; }
+
+/* ----- Sektioner ----- */
+section { padding: 40px 0; scroll-margin-top: 16px; }
+h2 { font-size: 1.8rem; margin: 0 0 8px; }
+.under { margin: 0 0 20px; color: var(--dov); }
+
+/* ----- Prova själv: två stora kort bredvid varandra ----- */
+.prova-rad {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));   /* lika breda, hoppar ner på mobil */
+  gap: 16px;
+}
+.prova-kort {
+  display: block;
+  padding: 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.prova-kort:hover, .prova-kort:focus-visible { transform: translateY(-3px); }
+.prova-kort h3 { margin: 8px 0 4px; font-size: 1.4rem; }
+.prova-kort p { margin: 0 0 16px; }
+.ikon { font-size: 2rem; }
+.knapp { display: inline-block; font-weight: 700; }
+
+/* ----- Projektkort i ett rutnät ----- */
+.kort-rutnat {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.kort { padding: 20px; display: flex; flex-direction: column; }
+.kort h3 { margin: 4px 0 8px; font-size: 1.25rem; }
+.kort p { margin: 0 0 10px; }
+.nummer { font-size: .85rem; font-weight: 700; color: var(--dov); margin: 0; }
+.lardom { font-size: .95rem; }
+.taggar { font-size: .85rem; color: var(--accent); margin-top: auto !important; }   /* auto = taggarna hamnar längst ner */
+.status { font-size: .8rem; font-weight: 700; display: inline-block; align-self: flex-start;
+          padding: 2px 10px; margin: 0 !important; }
+
+/* ----- Lärande ----- */
+.aplus { padding: 24px; margin-bottom: 32px; }
+.aplus h3 { margin-top: 0; font-size: 1.4rem; }
+.mataretikett { display: block; margin: 16px 0 6px; }
+
+/* Mätaren. appearance: none tar bort webbläsarens egen stil,
+   sedan finns en rad för Chrome/Safari (webkit) och en för Firefox (moz) */
+progress { appearance: none; -webkit-appearance: none; width: 100%; height: 14px; border: 0;
+           border-radius: 99px; background: var(--matare-bakgrund); overflow: hidden; }
+progress::-webkit-progress-bar { background: var(--matare-bakgrund); border-radius: 99px; }
+progress::-webkit-progress-value { background: var(--matare); border-radius: 99px; }
+progress::-moz-progress-bar { background: var(--matare); border-radius: 99px; }
+
+.faser { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 24px; margin-top: 16px; }
+.faser h4 { margin: 8px 0 4px; font-size: 1.1rem; }
+.kapitel { margin: 0; padding-left: 1.6em; }
+.kapitel li { padding: 2px 0; }
+.kapitel li.klar { text-decoration: line-through; color: var(--dov); }
+.kapitel li.klar::after { content: " ✓"; color: var(--accent); }
+
+.siffror { list-style: none; padding: 0; margin: 20px 0 0; display: flex; flex-wrap: wrap; gap: 12px 28px; }
+.siffror span { display: block; font-family: var(--rubriktext); font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+
+.amnen { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.amnen li { padding: 6px 14px; }
+
+/* ----- Tidslinje ----- */
+.tidslinje { list-style: none; padding: 0 0 0 24px; margin: 0; position: relative; }
+.tidslinje::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; background: var(--linje); }
+.tidslinje li { position: relative; padding: 0 0 20px 12px; }
+.tidslinje li::before { content: ""; position: absolute; left: -23px; top: 7px; width: 12px; height: 12px;
+                        border-radius: 50%; background: var(--accent); }
+.tidslinje time { display: block; font-weight: 700; font-size: .9rem; color: var(--dov); }
+
+footer { padding-top: 24px; padding-bottom: 48px; color: var(--dov); font-size: .9rem; }
+
+/* Synligt fokus för den som använder tangentbordet (Tab) */
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Den som har valt "minska rörelse" i datorn får inga animationer */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
 }
 
-.taggar {
-  font-size: 0.9em;
-  color: var(--lila);
+
+/* ============================================================
+   DEL 2: DESIGNEN "BLÄCK OCH BERG"
+   Som en gammal bokrulle: papper, svart bläck, berg i dimma
+   och en röd sol. Röda stämplar på projektnumren.
+   Byt färger i :root nedan.
+   ============================================================ */
+
+/* Typsnittet Cormorant Garamond (rubriker) hämtas från Google Fonts */
+
+:root {
+  color-scheme: light dark;
+  --bakgrund: #f2ebdd;        /* papper */
+  --yta: #faf6ee;             /* ljusare papper för korten */
+  --kant: #d9ccb4;
+  --text: #1d1a16;            /* bläck */
+  --dov: #6e6253;
+  --accent: #a8322a;          /* röd stämpelfärg */
+  --linje: #cbbb9f;
+  --matare: #a8322a;
+  --matare-bakgrund: #e4d9c5;
+  --rubriktext: "Cormorant Garamond", "Palatino Linotype", Georgia, serif;
+  --brodtext: system-ui, "Segoe UI", Ubuntu, sans-serif;
+  /* Bergen och solen är en bild (SVG) skriven direkt i koden */
+  --berg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 320' preserveAspectRatio='xMidYMax slice'%3E %3Cdefs%3E%3ClinearGradient id='f' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='.35' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23000'/%3E%3C/linearGradient%3E %3Cmask id='m'%3E%3Crect width='1200' height='320' fill='url(%23f)'/%3E%3C/mask%3E%3C/defs%3E %3Ccircle cx='1040' cy='52' r='40' fill='%23b8372b' opacity='.85'/%3E %3Cg mask='url(%23m)'%3E %3Cpath fill='%231d1a16' opacity='.09' d='M0 210 L70 175 L130 190 L210 120 L270 150 L330 105 L400 160 L470 140 L540 175 L610 120 L680 155 L760 90 L830 140 L900 125 L980 170 L1060 115 L1130 150 L1200 135 V320 H0Z'/%3E %3Cpath fill='%231d1a16' opacity='.14' d='M0 245 C90 205 150 225 230 190 S370 140 450 205 S610 235 700 185 S880 160 990 215 S1130 225 1200 200 V320 H0Z'/%3E %3Cpath fill='%231d1a16' opacity='.2' d='M0 285 C140 255 240 272 350 248 S560 226 680 262 S900 282 1020 252 S1150 258 1200 246 V320 H0Z'/%3E %3C/g%3E%3C/svg%3E");
+  --pensel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 16' preserveAspectRatio='none'%3E%3Cpath fill='%23b8372b' d='M2 9 C40 4 90 3 150 6 S260 9 298 5 L296 10 C250 13 180 12 120 12 S30 14 4 13 Z'/%3E%3C/svg%3E");
 }
 
-footer {
-  margin-top: 32px;
-  font-size: 0.9em;
-  opacity: 0.7;
+/* Bergen ligger överst på sidan, bakom namnet */
+body {
+  background:
+    var(--berg) center top 150px / max(1100px, 100%) auto no-repeat,
+    var(--bakgrund);
 }
 
-/* Ljust tema för besökare som har ljust läge i datorn */
-@media (prefers-color-scheme: light) {
+/* ----- Huvudet ----- */
+.topp { padding-top: 72px; padding-bottom: 170px; text-align: center; }
+.hej { font-family: var(--rubriktext); font-size: 1.3rem; font-style: italic; }
+h1 { font-weight: 700; letter-spacing: .04em; font-size: clamp(3rem, 11vw, 5.5rem); }
+.ingress { margin-left: auto; margin-right: auto; }
+.meny { justify-content: center; }
+.meny a {
+  color: var(--text);
+  font-family: var(--rubriktext);
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-bottom: 2px solid transparent;
+}
+.meny a:hover { border-bottom-color: var(--accent); color: var(--accent); }
+
+/* ----- Rubriker med ett rött penseldrag under ----- */
+h2 {
+  font-size: 2.3rem;
+  display: inline-block;
+  padding-bottom: 10px;
+  background: var(--pensel) left bottom / 100% 12px no-repeat;
+}
+h3, h4 { font-weight: 700; }
+.kort h3, .prova-kort h3 { font-size: 1.55rem; }
+
+/* ----- Kort som pappersark ----- */
+.prova-kort, .kort, .aplus {
+  background: var(--yta);
+  border: 1px solid var(--kant);
+  border-radius: 2px;
+  box-shadow: 0 1px 0 var(--kant), 0 8px 20px -12px rgba(60, 40, 20, .35);
+  position: relative;
+}
+/* Tunn dubbelram innanför kanten, som på en gammal karta */
+.prova-kort::after, .aplus::after {
+  content: ""; position: absolute; inset: 6px;
+  border: 1px solid var(--kant); pointer-events: none;
+}
+.prova-kort:hover, .prova-kort:focus-visible { box-shadow: 0 1px 0 var(--kant), 0 16px 28px -14px rgba(60, 40, 20, .5); }
+.prova-kort .knapp { color: var(--accent); font-family: var(--rubriktext); font-size: 1.2rem; }
+
+/* Projektnumret som en röd stämpel, lite snett */
+.nummer {
+  align-self: flex-start;
+  color: #fff7ee;
+  background: var(--accent);
+  font-family: var(--rubriktext);
+  font-size: 1rem;
+  padding: 2px 8px;
+  border-radius: 3px;
+  transform: rotate(-4deg);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .25);
+}
+
+.status { border: 1px solid currentColor; border-radius: 2px; }
+.status.klar  { color: #3f6b3a; }
+.status.pagar { color: #9a6a12; }
+
+.siffror span { font-size: 2.6rem; }
+.amnen li { border: 1px solid var(--kant); background: var(--yta); border-radius: 2px; }
+.tidslinje li::before { background: var(--bakgrund); border: 3px solid var(--accent); }
+.tidslinje time { font-family: var(--rubriktext); font-size: 1.1rem; color: var(--accent); }
+
+footer { text-align: center; font-family: var(--rubriktext); font-size: 1.1rem; }
+
+/* ----- Mörkt läge: samma berg i natten, med en blek måne ----- */
+@media (prefers-color-scheme: dark) {
   :root {
-    --bakgrund: #f5f3ff;
-    --text: #1f1b2e;
-    --lila: #6d28d9;
-    --kort: #ffffff;
+    --bakgrund: #13120f;
+    --yta: #1c1a16;
+    --kant: #36302a;
+    --text: #e8dfcc;
+    --dov: #a59a87;
+    --accent: #e0574a;
+    --linje: #3d362e;
+    --matare: #e0574a;
+    --matare-bakgrund: #2a2621;
+    --berg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 320' preserveAspectRatio='xMidYMax slice'%3E %3Cdefs%3E%3ClinearGradient id='f' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='.35' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23000'/%3E%3C/linearGradient%3E %3Cmask id='m'%3E%3Crect width='1200' height='320' fill='url(%23f)'/%3E%3C/mask%3E%3C/defs%3E %3Ccircle cx='1040' cy='52' r='40' fill='%23e9d8a6' opacity='.9'/%3E %3Cg mask='url(%23m)'%3E %3Cpath fill='%23e8dfcc' opacity='.09' d='M0 210 L70 175 L130 190 L210 120 L270 150 L330 105 L400 160 L470 140 L540 175 L610 120 L680 155 L760 90 L830 140 L900 125 L980 170 L1060 115 L1130 150 L1200 135 V320 H0Z'/%3E %3Cpath fill='%23e8dfcc' opacity='.14' d='M0 245 C90 205 150 225 230 190 S370 140 450 205 S610 235 700 185 S880 160 990 215 S1130 225 1200 200 V320 H0Z'/%3E %3Cpath fill='%23e8dfcc' opacity='.2' d='M0 285 C140 255 240 272 350 248 S560 226 680 262 S900 282 1020 252 S1150 258 1200 246 V320 H0Z'/%3E %3C/g%3E%3C/svg%3E");
   }
-
-  .kort {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  }
+  .nummer { color: #1c1a16; }
+  .status.klar  { color: #8fc487; }
+  .status.pagar { color: #e3b45a; }
+  .prova-kort, .kort, .aplus { box-shadow: 0 8px 20px -12px rgba(0, 0, 0, .7); }
 }

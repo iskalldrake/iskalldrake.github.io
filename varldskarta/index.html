@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">   <!-- ber sökmotorer att inte lista sidan -->
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kartquiz – glob</title>
+<style>
+  /* DEL 1: UTSEENDE (CSS) */
+  body { font-family: system-ui, sans-serif; background: #f6f8fb; color: #14233d; margin: 0; }
+  main { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+  h1 { margin-bottom: 4px; }
+  .tips { color: #51607a; font-size: 0.9rem; margin: 4px 0 8px; }
+
+  /* Klotet ritas på en "canvas" (en rityta) som ligger i en ruta, så att knapparna kan läggas ovanpå */
+  .globruta { position: relative; }
+  #glob { width: 100%; aspect-ratio: 16 / 10; display: block; border-radius: 12px;
+          background: radial-gradient(circle at 50% 40%, #1d3157, #0c1424);
+          cursor: grab; touch-action: none; user-select: none; }
+  #glob.drar { cursor: grabbing; }
+  @media (max-width: 500px) { #glob { aspect-ratio: 1 / 1; } }
+
+  .zoomknappar { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .zoomknappar button { padding: 6px 10px; font-size: 1.1rem; min-width: 40px; }
+
+  #fraga { font-size: 1.3rem; margin: 16px 0; }
+  #facit { min-height: 1.5em; margin: 12px 0 4px; font-weight: 600; }
+  .knappar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  button { padding: 12px; font-size: 1rem; border: 1px solid #b8c4d6;
+           border-radius: 10px; background: #fff; cursor: pointer; }
+  button:hover:enabled { background: #eef3fa; }
+  .ratt { background: #c8f0d6; }
+  .fel { background: #f6c9c9; }
+  #nasta { grid-column: 1 / -1; background: #d4006f; color: #fff; border: none; display: none; }
+  @media (max-width: 500px) { .knappar { grid-template-columns: 1fr; } }
+
+  /* Menyer */
+  .skarm { background: #fff; border: 1px solid #b8c4d6; border-radius: 12px; padding: 16px 20px; margin-top: 16px; }
+  .skarm label { display: block; margin: 14px 0 4px; font-weight: 600; }
+  .skarm select, .skarm input[type=number] { font-size: 1rem; padding: 8px; border: 1px solid #b8c4d6; border-radius: 8px; background: #fff; }
+  .skarm input[type=range] { width: 100%; }
+  .skarm > button { display: block; width: 100%; margin-top: 10px; }
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .presets button { padding: 16px; font-weight: 600; text-align: left; }
+  .presets small { display: block; font-weight: 400; color: #51607a; }
+  .presets button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .liten { font-weight: 400; color: #51607a; }
+  .rad { display: grid; grid-template-columns: 110px 1fr 90px; gap: 10px; align-items: center; margin: 6px 0; }
+  .rad input[type=range]:disabled { opacity: 0.4; }
+  .sammanfattning { color: #51607a; margin: 10px 0; }
+  .tangentrad { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #eef1f6; }
+  .tangentrad button { width: 140px; margin: 0; padding: 6px; font-family: monospace; }
+  .tangentrad button.lyssnar { background: #fff3b0; }
+  #starta, #igen, #nyMeny { background: #d4006f; color: #fff; border: none; }
+  #nyMeny { background: #fff; color: #14233d; border: 1px solid #b8c4d6; }
+  .slutknappar { display: none; gap: 8px; margin-top: 12px; }
+  .slutknappar button { flex: 1; }
+  .tangent { display: inline-block; min-width: 1.6em; padding: 0 5px; margin-right: 8px; border: 1px solid #b8c4d6; border-radius: 5px; background: #eef3fa; font: 0.8rem monospace; color: #51607a; }
+  /* Menyn på klotet */
+  #spel.menylage .quizdel { display: none !important; }
+  #klotpanel { display: none; position: absolute; left: 10px; top: 10px; width: 230px; padding: 10px 12px;
+               background: rgba(255,255,255,0.94); border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.25); font-size: 0.9rem; }
+  #spel.menylage #klotpanel { display: block; }
+  #klotpanel b { font-size: 1rem; }
+  #klotpanel small { display: block; color: #51607a; margin: 2px 0 6px; }
+  .kp-grupp { margin: 8px 0 3px; font-weight: 600; font-size: 0.8rem; color: #51607a; text-transform: uppercase; letter-spacing: 0.03em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { padding: 4px 8px; font-size: 0.85rem; border-radius: 14px; }
+  .chip.pa { background: #d4006f; color: #fff; border-color: #d4006f; }
+  .chip:disabled { opacity: 0.4; cursor: not-allowed; }
+  #kpStarta { width: 100%; margin-top: 10px; background: #d4006f; color: #fff; border: none; padding: 9px; }
+  #kpTavla, #kpMer { width: 100%; margin-top: 6px; padding: 6px; font-size: 0.8rem; }
+  #kpSammanfattning { margin-top: 8px; color: #51607a; font-size: 0.8rem; }
+  @media (max-width: 700px) { #klotpanel { position: static; width: auto; margin-top: 8px; } }
+  /* Poängtavla */
+  #tavla table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  #tavla th, #tavla td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eef1f6; font-size: 0.92rem; }
+  #tavla th { color: #51607a; font-size: 0.8rem; text-transform: uppercase; }
+  #tavla td.proc { font-weight: 700; }
+  #tavla tr.ny td { background: #fff3b0; }
+  #namnruta { display: none; margin-top: 12px; gap: 8px; }
+  #namnruta input { flex: 1; font-size: 1rem; padding: 10px; border: 1px solid #b8c4d6; border-radius: 10px; }
+  #namnruta button { background: #d4006f; color: #fff; border: none; }
+  .toppknappar { display: flex; gap: 8px; margin: 6px 0; }
+  .toppknappar button { padding: 4px 10px; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<!-- Tillbaka till portföljen (lagt till när appen flyttades in på iskalldrake.github.io) -->
+<a href="../index.html" style="position:fixed;left:12px;bottom:12px;z-index:50;padding:6px 12px;border-radius:99px;font:14px system-ui,sans-serif;text-decoration:none;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2)">← Portfölj</a>
+
+<main>
+  <!-- DEL 2: INNEHÅLL (HTML) -->
+  <h1>Kartquiz – glob</h1>
+  <!-- Huvudmenyn: färdiga rundor, egen runda och inställningar -->
+  <div id="huvudmeny" class="skarm">
+    <h2 style="margin-top:0">Välj en färdig runda</h2>
+    <label for="pRegion">Region för färdiga rundor</label>
+    <select id="pRegion"></select>
+    <label for="pSatt">Svarssätt</label>
+    <select id="pSatt"></select>
+    <div class="presets" id="presets"></div>
+    <div class="sammanfattning" id="presetMeddelande"></div>
+    <button id="tillKlot">🌍 Välj på klotet</button>
+    <button id="tillEgen">⚙️ Gör din egen runda</button>
+    <button id="tillInstallningar">⌨️ Inställningar (snabbtangenter)</button>
+  </div>
+
+  <!-- Egen runda: reglagen anpassar sig så att du aldrig kan välja något som inte går -->
+  <div id="egenmeny" class="skarm" style="display:none">
+    <h2 style="margin-top:0">Egen runda</h2>
+
+    <label for="mRegion">Region</label>
+    <select id="mRegion"></select>
+    <label for="mSatt">Svarssätt</label>
+    <select id="mSatt"></select>
+    <label><input type="checkbox" id="mStora"> Bara stora länder</label>
+
+    <label>Fördelning mellan frågetyper</label>
+    <div class="rad"><span>Länder (karta)</span><input type="range" id="mLand" min="0" max="100" value="40"><span id="utLand"></span></div>
+    <div class="rad"><span>Huvudstäder</span><input type="range" id="mHuvud" min="0" max="100" value="40"><span id="utHuvud"></span></div>
+    <div class="rad"><span>Hav</span><input type="range" id="mHav" min="0" max="100" value="20"><span id="utHav"></span></div>
+
+    <label for="mAntal">Antal frågor: <span id="utAntal"></span> <span class="liten" id="utMax"></span></label>
+    <input type="range" id="mAntal" min="1" max="50" value="10">
+    <div class="sammanfattning" id="sammanfattning"></div>
+
+    <button id="starta">Starta quizet (Enter)</button>
+    <button id="egenTillbaka">← Tillbaka</button>
+  </div>
+
+  <!-- Poängtavla -->
+  <div id="tavla" class="skarm" style="display:none">
+    <h2 style="margin-top:0">🏆 Poängtavla</h2>
+    <div class="sammanfattning">Bara färdiga rundor är rankade. Egna rundor är till för träning.</div>
+    <label for="tavlaTavling">Tävling</label>
+    <select id="tavlaTavling"></select>
+    <label for="tavlaRegion">Region</label>
+    <select id="tavlaRegion"></select>
+    <label for="tavlaSatt">Svarssätt</label>
+    <select id="tavlaSatt"></select>
+    <h3 id="tavlaRubrik" style="margin-bottom:0"></h3>
+    <div id="tavlaInnehall"></div>
+    <div class="sammanfattning">Poängtavlan sparas i den här webbläsaren på den här enheten.</div>
+    <button id="tavlaRensa">Rensa poängtavlan</button>
+    <button id="tavlaTillbaka">← Tillbaka</button>
+  </div>
+
+  <!-- Inställningar: snabbtangenter -->
+  <div id="installningar" class="skarm" style="display:none">
+    <h2 style="margin-top:0">Snabbtangenter</h2>
+    <div class="sammanfattning">Klicka på en tangent och tryck sedan på den tangent du vill använda i stället.</div>
+    <div id="tangentlista"></div>
+    <button id="aterstallTangenter">Återställ standard</button>
+    <button id="installTillbaka">← Tillbaka</button>
+  </div>
+
+  <div id="spel" style="display:none">
+  <div class="toppknappar"><button id="tillMenyn">☰ Meny</button><button id="tillbaka">◀ Föregående</button></div>
+  <div id="status"></div>
+  <div class="tips">Dra med musen för att snurra klotet. Zooma med mushjulet eller knapparna.</div>
+
+  <div class="globruta">
+    <canvas id="glob"></canvas>
+    <div id="klotpanel">
+      <b>Välj på klotet</b>
+      <small>Klicka på en kontinent. Klicka på havet för hela världen.</small>
+      <div>Region: <b id="kpRegionNamn"></b></div>
+      <div class="kp-grupp">Frågor om</div><div class="chips" id="kpTyper"></div>
+      <div class="kp-grupp">Antal frågor</div><div class="chips" id="kpAntal"></div>
+      <div class="kp-grupp">Svara genom att</div><div class="chips" id="kpSatt"></div>
+      <div id="kpSammanfattning"></div>
+      <button id="kpStarta">Starta (Enter)</button>
+      <button id="kpTavla">🏆 Poängtavla</button>
+      <button id="kpMer">Färdiga rundor &amp; fler val</button>
+    </div>
+    <div class="zoomknappar">
+      <button id="zoomIn" title="Zooma in">+</button>
+      <button id="zoomUt" title="Zooma ut">−</button>
+      <button id="zoomVisa" title="Snurra till det markerade landet">🔍</button>
+      <button id="zoomAterstall" title="Zooma ut och räta upp klotet">🌍</button>
+    </div>
+  </div>
+
+  <div id="fraga"></div>
+  <div class="knappar" id="svar"></div>
+  <div id="facit"></div>
+  <div class="knappar"><button id="nasta">Nästa fråga</button></div>
+  <div id="namnruta" class="quizdel"><input id="namnFalt" maxlength="20" placeholder="Ditt namn"><button id="sparaNamn">Spara på poängtavlan</button></div>
+  <div class="slutknappar" id="slutknappar"><button id="igen">Spela igen (samma värden)</button><button id="nyMeny">Tillbaka till menyn</button><button id="visaTavla">🏆 Poängtavla</button></div>
+  </div>
+</main>
+
+<!-- d3-geo: ett gratis bibliotek som kan räkna ut hur jorden ser ut som ett klot.
+     (Filen ligger i samma mapp, så sidan fungerar även utan internet.) -->
+<script src="d3-geo-bundle.js"></script>
+<!-- Kartdatan som Python-skriptet skapade (listan "länder") -->
+<script src="kartdata.js"></script>
+
+<script>
+  // DEL 3: LOGIK (JavaScript)
+
+  // ---------- Inställningar: ändra här och testa! ----------
+  // Antal frågor, fördelning och region väljer du nu i startmenyn. Här finns resten:
+  const NARA = 6;               // felalternativen väljs bland de NARA närmaste grannländerna
+  const MAX_ZOOM = 40;          // hur mycket DU får zooma in (med hjul och knappar)
+  const MAX_AUTO_ZOOM = 15;     // hur mycket klotet får zooma in av sig själv. Lägre = mildare zoom
+  const ZOOM_STYRKA = 50;       // högre = zoomar in mer på länder. Lägre = mildare zoom
+  const FLYGTID = 2000;         // hur många millisekunder klotet snurrar till ett markerat land
+  // ----------------------------------------------------------
+
+  const GRAD = 180 / Math.PI;   // omvandlar radianer till grader
+
+  function blanda(lista) {
+    return [...lista].sort(() => Math.random() - 0.5);
+  }
+
+  // --- Steg A: förbered länderna och haven ---
+  // För varje land (och hav) räknar vi ut var dess mittpunkt ligger och hur stort det är i grader.
+  // Länder med avlägsna delar (t.ex. Frankrike med Franska Guyana) mäter vi bara på huvuddelen.
+  function forberedForm(objekt) {
+    objekt.feature = { type: "Feature", geometry: objekt.geo };
+    const delar = objekt.geo.coordinates.map(c => ({ type: "Polygon", coordinates: c }));
+    let storst = delar[0], storstAreal = -1;
+    for (const d of delar) {
+      const areal = d3.geoArea(d);
+      if (areal > storstAreal) { storstAreal = areal; storst = d; }
+    }
+    const mittStorst = d3.geoCentroid(storst);
+    const nara = delar.filter(d => d3.geoDistance(d3.geoCentroid(d), mittStorst) < 40 / GRAD);
+    const form = { type: "MultiPolygon", coordinates: nara.map(d => d.coordinates) };
+    objekt.mitt = d3.geoCentroid(form);                        // [longitud, latitud]
+    const [[v, s], [o, n]] = d3.geoBounds(form);               // väst, syd, öst, nord
+    let bredd = o - v; if (bredd < 0) bredd += 360;            // om formen korsar datumgränsen
+    const hojd = n - s;
+    objekt.storlek = Math.max(bredd * Math.cos((s + n) / 2 / GRAD), hojd, 0.5);   // storlek i grader
+  }
+  for (const land of länder) forberedForm(land);
+
+  for (const h of hav) {
+    forberedForm(h);
+    h.ärHav = true;
+    if (h.typ === "ocean") {
+      h.mitt = d3.geoCentroid(h.feature);   // oceanerna är delade i bitar, så vi mäter på hela
+      h.storlek = 120;                      // stora nog att vi inte zoomar in, bara snurrar dit
+    }
+    // Felalternativ för hav: bara hav av samma sort (oceaner med oceaner, hav med hav),
+    // sorterade efter avstånd, så att "Nordsjön" får grannar som Östersjön och Norska havet.
+    // Då kan ett litet hav aldrig få "Atlanten" som fel svar, för det skulle också vara rätt.
+    // Av samma skäl är "Adriatiska havet" och "Medelhavet" aldrig alternativ till varandra.
+  }
+  for (const h of hav) {
+    h.grannar = hav
+      .filter(x => x !== h && x.typ === h.typ
+                   && x.namn !== h.ingarI && x.ingarI !== h.namn)   // en del och dess helhet blandas aldrig ihop
+      .sort((a, b) => d3.geoDistance(h.mitt, a.mitt) - d3.geoDistance(h.mitt, b.mitt))
+      .map(x => x.namn);
+  }
+
+  // --- Steg B: klotet ---
+  const canvas = document.getElementById("glob");
+  const ctx = canvas.getContext("2d");
+  const projektion = d3.geoOrthographic().clipAngle(90).precision(0.5);   // "orthographic" = som ett klot sett utifrån
+  const bana = d3.geoPath(projektion, ctx);                               // ritar former på vår canvas
+  const gradnat = d3.geoGraticule10();                                    // linjer för longitud och latitud
+  const SFAR = { type: "Sphere" };
+
+  // "vy" är hur vi tittar på klotet: lon/lat = punkten vi tittar rakt på, zoom = 1 är hela klotet
+  const vy = { lon: 15, lat: 25, zoom: 1 };
+
+  let markerat = null;      // landet som är rosa just nu
+  let menylage = false;       // true när startmenyn på klotet visas
+  let valdKontinent = null, hoverKontinent = null;   // kontinenter som färgas i menyn
+  let felMarkerat = null;   // det du klickade på när det blev fel (rödfärgas)
+  let visaPrickFor = null;  // landet vars huvudstad ska få en prick
+
+  function rita() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);     // skarp bild även på skärmar med hög upplösning
+      canvas.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const R = Math.min(w, h) / 2 * 0.94;      // klotets radie när man ser hela klotet
+    const skala = R * vy.zoom;
+    const cx = menylage && w > 700 ? w / 2 + 110 : w / 2;     // i menyn flyttas klotet åt höger, så att panelen inte skymmer det
+    projektion.translate([cx, h / 2]).scale(skala)
+      .rotate([-vy.lon, -vy.lat])             // vrider klotet så att (lon, lat) hamnar i mitten
+      .clipExtent([[-20, -20], [w + 20, h + 20]]);
+
+    // Hav
+    ctx.beginPath(); bana(SFAR);
+    ctx.fillStyle = "#cfe6f7"; ctx.fill();
+
+    // Gradnät
+    ctx.beginPath(); bana(gradnat);
+    ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 0.5; ctx.stroke();
+
+    // Ett markerat hav färgas före länderna, så att länderna hamnar ovanpå om formerna överlappar
+    if (markerat && markerat.ärHav) {
+      ctx.beginPath(); bana(markerat.feature);
+      ctx.fillStyle = "rgba(212,0,111,0.55)"; ctx.fill();
+    }
+
+    if (felMarkerat && felMarkerat.ärHav) {
+      ctx.beginPath(); bana(felMarkerat.feature);
+      ctx.fillStyle = "rgba(200,40,40,0.5)"; ctx.fill();
+    }
+
+    // Länder (ett markerat land ritas sist så att det hamnar överst)
+    ctx.lineWidth = 0.7; ctx.strokeStyle = "#9a9482"; ctx.fillStyle = "#e8e2cf";
+    for (const land of länder) {
+      if (land === markerat || land === felMarkerat) continue;
+      ctx.fillStyle = menylage && land.kontinent === valdKontinent ? "#eaa6c9"
+                    : menylage && land.kontinent === hoverKontinent ? "#f4d3e4" : "#e8e2cf";
+      ctx.beginPath(); bana(land.feature); ctx.fill(); ctx.stroke();
+    }
+    if (felMarkerat && !felMarkerat.ärHav) {
+      ctx.beginPath(); bana(felMarkerat.feature);
+      ctx.fillStyle = "#d83a3a"; ctx.strokeStyle = "#7a1010"; ctx.lineWidth = 1.2;
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#e8e2cf"; ctx.strokeStyle = "#9a9482"; ctx.lineWidth = 0.7;
+    }
+    if (markerat && !markerat.ärHav) {
+      ctx.beginPath(); bana(markerat.feature);
+      ctx.fillStyle = "#d4006f"; ctx.strokeStyle = "#7a0040"; ctx.lineWidth = 1.5;
+      ctx.fill(); ctx.stroke();
+    }
+
+    // Skuggning så att det ser rundare ut
+    ctx.beginPath(); bana(SFAR);
+    const g = ctx.createRadialGradient(cx - skala * 0.35, h / 2 - skala * 0.35, skala * 0.1, cx, h / 2, skala);
+    g.addColorStop(0, "rgba(255,255,255,0.18)");
+    g.addColorStop(0.6, "rgba(255,255,255,0)");
+    g.addColorStop(1, "rgba(0,10,40,0.38)");
+    ctx.fillStyle = g; ctx.fill();
+
+    const centrum = [vy.lon, vy.lat];
+    const syns = (punkt) => d3.geoDistance(punkt, centrum) < Math.PI / 2 - 0.03;   // ligger punkten på framsidan?
+
+    // Ring runt det markerade landet när det är litet på skärmen
+    if (markerat && syns(markerat.mitt) && markerat.storlek / GRAD * skala < 40) {
+      const [x, y] = projektion(markerat.mitt);
+      ctx.beginPath(); ctx.arc(x, y, 22, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#d4006f"; ctx.lineWidth = 3; ctx.stroke();
+    }
+
+    // Prick på huvudstaden (visas efter att du har svarat)
+    if (visaPrickFor && visaPrickFor.huvudstadGeo && syns(visaPrickFor.huvudstadGeo)) {
+      const [x, y] = projektion(visaPrickFor.huvudstadGeo);
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = "#14233d"; ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // Kantlinje runt klotet
+    ctx.beginPath(); bana(SFAR);
+    ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // Rita om högst en gång per bildruta, även om musen skickar många händelser
+  let ritaVantar = false;
+  function ritaSnart() {
+    if (ritaVantar) return;
+    ritaVantar = true;
+    requestAnimationFrame(() => { ritaVantar = false; rita(); });
+  }
+  window.addEventListener("resize", ritaSnart);
+
+  // --- Steg C: snurra och zooma ---
+  const begransaZoom = (z) => Math.max(1, Math.min(MAX_ZOOM, z));
+
+  // Dra för att snurra. Hur långt klotet snurrar beror på zoomen, så att ytan följer musen.
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    avbrytAnimation();
+    drag = { x: e.clientX, y: e.clientY, rorelse: 0 };     // rorelse = hur långt musen har dragits (för att skilja klick från drag)
+    canvas.setPointerCapture(e.pointerId);
+    canvas.classList.add("drar");
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) { if (menylage) hovraMeny(e); return; }
+    const R = Math.min(canvas.clientWidth, canvas.clientHeight) / 2 * 0.94;
+    const grader = GRAD / (R * vy.zoom);         // grader per skärmpixel
+    vy.lon -= (e.clientX - drag.x) * grader;
+    vy.lat += (e.clientY - drag.y) * grader;
+    vy.lat = Math.max(-90, Math.min(90, vy.lat));  // man kan inte snurra "över" polerna
+    drag = { x: e.clientX, y: e.clientY, rorelse: drag.rorelse + Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0) };
+    ritaSnart();
+  });
+  const slutaDra = () => { drag = null; canvas.classList.remove("drar"); };
+  canvas.addEventListener("pointerup", (e) => {
+    const varKlick = drag && drag.rorelse < 5;     // nästan ingen rörelse = ett klick, inte ett drag
+    slutaDra();
+    if (varKlick) klickPaKlotet(e);
+  });
+  canvas.addEventListener("pointercancel", slutaDra);
+
+  // Mushjulet zoomar
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();                          // hindra sidan från att scrolla
+    avbrytAnimation();
+    vy.zoom = begransaZoom(vy.zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2));
+    ritaSnart();
+  }, { passive: false });
+
+  // Animationer: klotet "flyger" mjukt till ett nytt läge
+  let animation = null, animationIgang = false;
+  function avbrytAnimation() { animation = null; }
+
+  function tick(t) {
+    if (animation) {
+      const klar = animation(t);
+      rita();
+      if (klar) animation = null;
+    }
+    if (animation) requestAnimationFrame(tick);
+    else animationIgang = false;
+  }
+  function startaAnimation(funktion) {
+    animation = funktion;
+    if (!animationIgang) { animationIgang = true; requestAnimationFrame(tick); }
+  }
+
+  // Flyg till ett läge: mal = { lon, lat, zoom }
+  function flygTill(mal) {
+    vy.lon = ((vy.lon + 540) % 360) - 180;                        // håll longituden mellan -180 och 180
+    const start = { lon: vy.lon, lat: vy.lat, zoom: vy.zoom };
+    const dLon = ((mal.lon - start.lon + 540) % 360) - 180;       // snurra åt det kortaste hållet
+    const avstand = d3.geoDistance([start.lon, start.lat], [mal.lon, mal.lat]) * GRAD;
+    let t0 = null;
+    startaAnimation((t) => {
+      if (t0 === null) t0 = t;
+      const k = Math.min(1, (t - t0) / FLYGTID);                   // 0 -> 1 under flygtiden
+      const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   // mjuk start och inbromsning
+      vy.lon = start.lon + dLon * e;
+      vy.lat = start.lat + (mal.lat - start.lat) * e;
+      let z = start.zoom * Math.pow(mal.zoom / start.zoom, e);
+      z *= 1 - 0.5 * Math.sin(Math.PI * e) * Math.min(1, avstand / 60);   // zoomar ut en bit på långa resor
+      vy.zoom = begransaZoom(z);
+      return k >= 1;
+    });
+  }
+
+  // Hur mycket vi ska zooma för att landet ska synas bra utan att vi zoomar in för nära.
+  // Stora länder behöver ingen zoom, små länder zoomas in lagom (aldrig mer än MAX_AUTO_ZOOM).
+  const zoomForLand = (land) => Math.min(MAX_AUTO_ZOOM, begransaZoom(ZOOM_STYRKA / land.storlek));
+  const flygTillLand = (land) => flygTill({ lon: land.mitt[0], lat: land.mitt[1], zoom: zoomForLand(land) });
+
+  // Knapparna
+  document.getElementById("zoomIn").onclick = () => { avbrytAnimation(); vy.zoom = begransaZoom(vy.zoom * 1.6); ritaSnart(); };
+  document.getElementById("zoomUt").onclick = () => { avbrytAnimation(); vy.zoom = begransaZoom(vy.zoom / 1.6); ritaSnart(); };
+  document.getElementById("zoomVisa").onclick = () => { if (aktuellt) flygTillLand(aktuellt); };
+  document.getElementById("zoomAterstall").onclick = () => flygTill({ lon: vy.lon, lat: 20, zoom: 1 });
+
+  // --- Steg D: menyer, snabbtangenter och frågorna ---
+
+  // Regioner. "kontinent" matchar länderna. "ruta" = [väst, syd, öst, nord] i grader och används
+  // för att avgöra vilka hav som hör till regionen (efter havets mittpunkt). "vy" = hur klotet står när rundan startar.
+  const REGIONER = {
+    "Hela världen": { kontinent: null,            ruta: null,                 vy: { lon: 15,   lat: 25,  zoom: 1 } },
+    "Europa":       { kontinent: "Europe",        ruta: [-35, 30, 45, 75],    vy: { lon: 15,   lat: 52,  zoom: 2.4 } },
+    "Asien":        { kontinent: "Asia",          ruta: [45, -10, 180, 80],   vy: { lon: 90,   lat: 35,  zoom: 1.7 } },
+    "Afrika":       { kontinent: "Africa",        ruta: [-30, -40, 55, 38],   vy: { lon: 20,   lat: 2,   zoom: 1.6 } },
+    "Nordamerika":  { kontinent: "North America", ruta: [-170, 5, -50, 85],   vy: { lon: -100, lat: 42,  zoom: 1.6 } },
+    "Sydamerika":   { kontinent: "South America", ruta: [-90, -60, -30, 15],  vy: { lon: -60,  lat: -18, zoom: 1.8 } },
+    "Oceanien":     { kontinent: "Oceania",       ruta: [110, -50, 180, 5],   vy: { lon: 150,  lat: -22, zoom: 2 } },
+  };
+  const MAX_FRAGOR = 100;
+
+  // Färdiga rundor ("presets"). andelar = [länder, huvudstäder, hav] – bara förhållandet mellan talen spelar roll.
+  const PRESETS = [
+    { namn: "🗺️ Länder",         andelar: [1, 0, 0], n: 20 },
+    { namn: "🏛️ Huvudstäder",    andelar: [0, 1, 0], n: 20 },
+    { namn: "🌊 Hav",            andelar: [0, 0, 1], n: 15 },
+    { namn: "🎲 Blandning",      andelar: [2, 2, 1], n: 20 },
+    { namn: "⚡ Snabbrunda",      andelar: [2, 2, 1], n: 10 },
+    { namn: "🏆 Maraton",        andelar: [2, 2, 1], n: 50 },
+  ];
+
+  // ----- Snabbtangenter -----
+  const STANDARD_TANGENTER = { nasta: "Enter", tillbaka: "Backspace", svar0: "q", svar1: "w", svar2: "e", svar3: "r" };
+  const TANGENT_NAMN = {
+    nasta: "Nästa fråga", tillbaka: "Föregående fråga",
+    svar0: "Svar 1 (uppe till vänster)", svar1: "Svar 2 (uppe till höger)",
+    svar2: "Svar 3 (nere till vänster)", svar3: "Svar 4 (nere till höger)",
+  };
+  let tangenter = { ...STANDARD_TANGENTER };
+  try { Object.assign(tangenter, JSON.parse(localStorage.getItem("kartquiz_tangenter") || "{}")); } catch (e) {}
+  const sparaTangenter = () => { try { localStorage.setItem("kartquiz_tangenter", JSON.stringify(tangenter)); } catch (e) {} };
+  const normaliseraTangent = (k) => k.length === 1 ? k.toLowerCase() : k;
+  const visaTangent = (k) => k === " " ? "Mellanslag" : k.length === 1 ? k.toUpperCase() : k;
+  let lyssnarPa = null;      // vilken tangent vi håller på att byta just nu
+
+  function ritaTangentlista() {
+    const lista = document.getElementById("tangentlista");
+    lista.innerHTML = "";
+    for (const id of Object.keys(TANGENT_NAMN)) {
+      const rad = document.createElement("div");
+      rad.className = "tangentrad";
+      rad.innerHTML = "<span>" + TANGENT_NAMN[id] + "</span>";
+      const knapp = document.createElement("button");
+      knapp.textContent = lyssnarPa === id ? "tryck en tangent…" : visaTangent(tangenter[id]);
+      if (lyssnarPa === id) knapp.classList.add("lyssnar");
+      knapp.onclick = () => { lyssnarPa = id; ritaTangentlista(); };
+      rad.appendChild(knapp);
+      lista.appendChild(rad);
+    }
+  }
+  document.getElementById("aterstallTangenter").onclick = () => {
+    tangenter = { ...STANDARD_TANGENTER }; lyssnarPa = null; sparaTangenter(); ritaTangentlista();
+  };
+
+  // ----- Skärmar -----
+  const SKARMAR = ["huvudmeny", "egenmeny", "installningar", "tavla", "spel"];
+  function visaSkarm(id) {
+    const iKlot = id === "klotmeny";                 // menyn på klotet använder samma skärm som spelet
+    for (const s of SKARMAR) document.getElementById(s).style.display = (s === id || (iKlot && s === "spel")) ? "" : "none";
+    document.getElementById("spel").classList.toggle("menylage", iKlot);
+    menylage = iKlot;
+    if (!iKlot) canvas.style.cursor = "";
+    lyssnarPa = null;
+    if (id !== "spel" && !iKlot) avbrytAnimation();
+    if (iKlot) startaKlotmeny();
+  }
+  const skarmSynlig = (id) => document.getElementById(id).style.display !== "none";
+
+  // ----- Räkna ut vilka rundor som går att göra -----
+  // Fördelar N frågor på tre typer efter andelarna (störst rest först, så att summan alltid blir N)
+  function fordela(n, andelar) {
+    const summa = andelar.reduce((a, b) => a + b, 0) || 1;
+    const exakta = andelar.map(a => n * a / summa);
+    const antal = exakta.map(Math.floor);
+    let kvar = n - antal.reduce((a, b) => a + b, 0);
+    exakta.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0])
+      .forEach(([, i]) => { if (kvar > 0) { antal[i]++; kvar--; } });
+    return antal;                                  // [land, huvudstad, hav]
+  }
+
+  // Vilka länder och hav finns att fråga om i en region?
+  function poolerFor(region, baraStora) {
+    const reg = REGIONER[region];
+    const land = länder.filter(l => l.val && (!baraStora || l.stor) && (!reg.kontinent || l.kontinent === reg.kontinent));
+    const havLista = hav.filter(h => {
+      if (!reg.ruta) return true;
+      if (h.typ === "ocean") return false;          // oceanerna är för stora för att höra till en region
+      const [v, s, o, n] = reg.ruta;
+      return h.mitt[0] >= v && h.mitt[0] <= o && h.mitt[1] >= s && h.mitt[1] <= n;
+    });
+    return { land, huvud: land.filter(l => l.huvudstad), hav: havLista };
+  }
+  // Länder kan bara komma en gång, så kartfrågor + huvudstadsfrågor får inte bli fler än länderna
+  function passar(n, andelar, p) {
+    const a = fordela(n, andelar);
+    return a[0] + a[1] <= p.land.length && a[1] <= p.huvud.length && a[2] <= p.hav.length;
+  }
+  function storstaN(andelar, p) {
+    if (andelar.every(a => a === 0)) return 0;
+    let max = 0;
+    for (let n = 1; n <= MAX_FRAGOR; n++) if (passar(n, andelar, p)) max = n;
+    return max;
+  }
+
+  // ----- Huvudmenyn med färdiga rundor -----
+  const valPresetRegion = document.getElementById("pRegion");
+  const valRegion = document.getElementById("mRegion");
+  for (const namn of Object.keys(REGIONER)) {
+    valPresetRegion.add(new Option(namn === "Hela världen" ? "Hela världen (alla regioner)" : namn, namn));
+    valRegion.add(new Option(namn === "Hela världen" ? "Hela världen (alla regioner)" : namn, namn));
+  }
+  // Svarssätt: knappar, klick på klotet, eller blandat
+  const SATT = { knappar: "Flervalsknappar", klick: "Klicka på klotet", blandat: "Blandat (båda)" };
+  let svarssatt = "knappar";
+  try { svarssatt = localStorage.getItem("kartquiz_satt") || "knappar"; } catch (e) {}
+  if (!SATT[svarssatt]) svarssatt = "knappar";
+  for (const id of ["pSatt", "mSatt"]) {
+    const val = document.getElementById(id);
+    for (const [k, namn] of Object.entries(SATT)) val.add(new Option(namn, k));
+    val.value = svarssatt;
+    val.onchange = () => {
+      svarssatt = val.value;
+      try { localStorage.setItem("kartquiz_satt", svarssatt); } catch (e) {}
+      for (const andra of ["pSatt", "mSatt"]) document.getElementById(andra).value = svarssatt;
+    };
+  }
+
+  // Hur en färdig runda ser ut i en viss region. Typer som saknas i regionen (t.ex. hav i Sydamerika) hoppas över.
+  function presetUpplagg(pre, region) {
+    const p = poolerFor(region, false);
+    const pooler = [p.land, p.huvud, p.hav];
+    const andelar = pre.andelar.map((a, i) => pooler[i].length ? a : 0);
+    const max = storstaN(andelar, p);
+    return { andelar, max, n: Math.min(pre.n, max) };
+  }
+
+  function ritaPresets() {
+    const ruta = document.getElementById("presets");
+    ruta.innerHTML = "";
+    const p = poolerFor(valPresetRegion.value, false);
+    for (const pre of PRESETS) {
+      const { andelar, n, max } = presetUpplagg(pre, valPresetRegion.value);
+      const knapp = document.createElement("button");
+      knapp.innerHTML = pre.namn + "<small>" + (max === 0 ? "Finns inte i den här regionen" : n + " frågor") + "</small>";
+      knapp.disabled = max === 0;
+      knapp.onclick = () => startaRunda({ andelar, n, region: valPresetRegion.value, bara_stora: false, tavling: pre.namn });
+      ruta.appendChild(knapp);
+    }
+  }
+  valPresetRegion.onchange = ritaPresets;
+  document.getElementById("tillEgen").onclick = () => { visaSkarm("egenmeny"); uppdateraEgen(); };
+  document.getElementById("tillInstallningar").onclick = () => { visaSkarm("installningar"); ritaTangentlista(); };
+  document.getElementById("egenTillbaka").onclick = () => visaSkarm("huvudmeny");
+  document.getElementById("installTillbaka").onclick = () => visaSkarm("huvudmeny");
+
+  // ----- Egen runda: reglagen anpassar sig efter varandra -----
+  const reglage = ["mLand", "mHuvud", "mHav"].map(id => document.getElementById(id));
+  function uppdateraEgen() {
+    const p = poolerFor(valRegion.value, document.getElementById("mStora").checked);
+    const pooler = [p.land, p.huvud, p.hav];
+    // Typer som saknas i regionen (t.ex. hav i Sydamerika) stängs av
+    reglage.forEach((r, i) => {
+      r.disabled = pooler[i].length === 0;
+      if (r.disabled) r.value = 0;
+    });
+    const andelar = reglage.map(r => +r.value);
+    const summa = andelar.reduce((a, b) => a + b, 0);
+    ["utLand", "utHuvud", "utHav"].forEach((id, i) => {
+      document.getElementById(id).textContent = summa ? Math.round(100 * andelar[i] / summa) + " %" : "0 %";
+    });
+
+    // Antal-reglaget: maxvärdet är det största antal som går med dina val (100 % = max)
+    const max = storstaN(andelar, p);
+    const antalReglage = document.getElementById("mAntal");
+    antalReglage.max = Math.max(1, max);
+    antalReglage.disabled = max === 0;
+    if (+antalReglage.value > max) antalReglage.value = max;
+    if (max > 0 && +antalReglage.value < 1) antalReglage.value = 1;
+    const n = max === 0 ? 0 : +antalReglage.value;
+    document.getElementById("utAntal").textContent = n;
+    document.getElementById("utMax").textContent = max ? "(max " + max + " med dina val)" : "";
+    const a = fordela(n, andelar);
+    document.getElementById("sammanfattning").textContent = max === 0
+      ? "Dra upp minst ett av reglagen för frågetyper."
+      : n + " frågor: " + a[0] + " om länder, " + a[1] + " om huvudstäder, " + a[2] + " om hav.";
+    document.getElementById("starta").disabled = max === 0;
+  }
+  document.getElementById("egenmeny").addEventListener("input", uppdateraEgen);
+  document.getElementById("egenmeny").addEventListener("change", uppdateraEgen);
+  document.getElementById("starta").onclick = () => {
+    uppdateraEgen();
+    const andelar = reglage.map(r => +r.value);
+    startaRunda({ andelar, n: +document.getElementById("mAntal").value, region: valRegion.value,
+                  bara_stora: document.getElementById("mStora").checked });
+  };
+
+  // ----- Spelet -----
+  let frågor = [];
+  let nr = 0;
+  let poäng = 0;
+  let aktuellt = null;       // landet (eller havet) vi frågar om just nu
+  let frågetyp = "karta";    // "karta", "huvudstad" eller "hav"
+  let besvarad = false;
+  let senasteRunda = null;   // inställningarna för "Spela igen"
+
+  function startaRunda(cfg) {
+    cfg.satt = cfg.satt || svarssatt;
+    senasteRunda = cfg;
+    const reg = REGIONER[cfg.region];
+    const p = poolerFor(cfg.region, cfg.bara_stora);
+    const antal = fordela(cfg.n, cfg.andelar);
+    const anvanda = new Set();           // så att samma land eller hav inte kommer två gånger
+    const tag = (lista, n, typ) => {
+      const valda = [];
+      for (const l of blanda(lista)) {
+        if (valda.length >= n) break;
+        if (anvanda.has(l)) continue;
+        anvanda.add(l); valda.push({ typ, land: l, val: null });   // "land" kan alltså också vara ett hav
+      }
+      return valda;
+    };
+    // Huvudstäder väljs först, eftersom få länder saknar huvudstad och därför är "knappast" resurs
+    frågor = blanda([...tag(p.huvud, antal[1], "huvudstad"), ...tag(p.land, antal[0], "karta"), ...tag(p.hav, antal[2], "hav")]);
+    for (const f of frågor) f.sätt = cfg.satt === "blandat" ? (Math.random() < 0.5 ? "klick" : "knappar") : cfg.satt;
+
+    nr = 0;
+    avbrytAnimation();
+    visaSkarm("spel");
+    Object.assign(vy, { lon: reg.vy.lon, lat: reg.vy.lat, zoom: reg.vy.zoom });
+    rita();
+    visaFraga();
+  }
+
+  // Huvudstadsfrågor: flyg till ett ungefärligt område runt ALLA svarsalternativen.
+  // Mitten är genomsnittet av de fyra alternativens lägen plus lite slump, så att rätt land inte pekas ut.
+  function raknaAlternativsVy(alternativ) {
+    const punkter = { type: "MultiPoint", coordinates: alternativ.map(l => l.mitt) };
+    const c = d3.geoCentroid(punkter);
+    const spridning = Math.max(...alternativ.map(l => d3.geoDistance(c, l.mitt) * GRAD + l.storlek / 2), 8);
+    const slump = () => (Math.random() - 0.5) * spridning * 0.4;
+    return {
+      lon: c[0] + slump(),
+      lat: Math.max(-80, Math.min(80, c[1] + slump())),
+      zoom: Math.max(1, Math.min(MAX_AUTO_ZOOM, 55 / (spridning * 1.5))),
+    };
+  }
+
+  // ----- Poängtavla -----
+  const TAVLA_NYCKEL = "kartquiz_tavla", NAMN_NYCKEL = "kartquiz_namn";
+  let senastePost = null;
+  function hamtaTavla() {
+    try { return JSON.parse(localStorage.getItem(TAVLA_NYCKEL) || "[]"); } catch (e) { return []; }
+  }
+  function sparaTavla(lista) { try { localStorage.setItem(TAVLA_NYCKEL, JSON.stringify(lista)); } catch (e) {} }
+  function hamtaSistaNamn() { try { return localStorage.getItem(NAMN_NYCKEL) || ""; } catch (e) { return ""; } }
+
+  // Varje färdig runda är en egen tävling med egen poängtavla (där räknas poängen).
+  // Egna rundor har ingen fast längd, så där räknas procent i stället.
+  const tavlaTavling = document.getElementById("tavlaTavling");
+  const tavlaRegion = document.getElementById("tavlaRegion");
+  const tavlaSatt = document.getElementById("tavlaSatt");
+  for (const namn of PRESETS.map(p => p.namn)) tavlaTavling.add(new Option(namn, namn));
+  for (const [k, namn] of [["", "Alla svarssätt"], ...Object.entries(SATT).filter(([k]) => k !== "blandat")]) tavlaSatt.add(new Option(namn, k));
+  tavlaSatt.add(new Option(SATT.blandat, "blandat"));
+
+  // Varje kombination av runda och region är en egen tävling
+  function fyllRegionLista(valt) {
+    tavlaRegion.innerHTML = "";
+    for (const namn of Object.keys(REGIONER)) tavlaRegion.add(new Option(namn, namn));
+    tavlaRegion.value = [...tavlaRegion.options].some(o => o.value === valt) ? valt : tavlaRegion.options[0].value;
+  }
+  tavlaTavling.onchange = () => { fyllRegionLista(tavlaRegion.value); ritaTavla(); };
+  tavlaRegion.onchange = ritaTavla;
+  tavlaSatt.onchange = ritaTavla;
+
+  function ritaTavla() {
+    const tav = tavlaTavling.value, reg = tavlaRegion.value, satt = tavlaSatt.value;
+    const pre = PRESETS.find(p => p.namn === tav);
+    // Bara resultat med samma antal frågor som rundan har nu räknas, så att en ändrad lista inte blandar ihop tävlingarna
+    const n = presetUpplagg(pre, reg).n;
+    const lista = hamtaTavla()
+      .filter(p => p.tavling === tav && p.region === reg && p.antal === n && (!satt || p.satt === satt))
+      .sort((a, b) => b.poang - a.poang || a.tid - b.tid)          // flest poäng först, vid lika vinner den som klarade det först
+      .slice(0, 15);
+    document.getElementById("tavlaRubrik").textContent = tav + " · " + reg + " · " + n + " frågor";
+    const ruta = document.getElementById("tavlaInnehall");
+    if (!lista.length) { ruta.innerHTML = '<div class="sammanfattning">Inga resultat än. Spela rundan och spara ditt namn!</div>'; return; }
+    let html = "<table><tr><th>#</th><th>Namn</th><th>Poäng</th><th>Svarssätt</th><th>Datum</th></tr>";
+    lista.forEach((p, i) => {
+      html += '<tr class="' + (p.tid === senastePost ? "ny" : "") + '"><td>' + (i + 1) + "</td><td>" + p.namn.replace(/[<>&]/g, "") +
+        "</td><td><b>" + p.poang + "</b>/" + p.antal + "</td><td>" + (SATT[p.satt] || p.satt) + "</td><td>" +
+        new Date(p.tid).toLocaleDateString("sv-SE") + "</td></tr>";
+    });
+    ruta.innerHTML = html + "</table>";
+  }
+  document.getElementById("sparaNamn").onclick = () => {
+    const namn = document.getElementById("namnFalt").value.trim().slice(0, 20);
+    if (!namn || senastePost) return;
+    try { localStorage.setItem(NAMN_NYCKEL, namn); } catch (e) {}
+    const post = {
+      namn, poang: poäng, antal: frågor.length, procent: Math.round(100 * poäng / frågor.length),
+      tavling: senasteRunda.tavling, region: senasteRunda.region, satt: senasteRunda.satt, tid: Date.now(),
+    };
+    senastePost = post.tid;
+    const lista = hamtaTavla(); lista.push(post); sparaTavla(lista.slice(-500));
+    document.getElementById("namnruta").style.display = "none";
+    oppnaTavla();
+  };
+  // Öppna tavlan på senast spelade tävling, region och svarssätt
+  function oppnaTavla() {
+    const r = senasteRunda;
+    tavlaTavling.value = r && r.tavling ? r.tavling : PRESETS[0].namn;
+    fyllRegionLista(r ? r.region : "Hela världen");
+    tavlaSatt.value = "";
+    ritaTavla(); visaSkarm("tavla");
+  }
+  document.getElementById("visaTavla").onclick = oppnaTavla;
+  document.getElementById("kpTavla").onclick = oppnaTavla;
+  document.getElementById("tavlaTillbaka").onclick = () => visaSkarm("klotmeny");
+  document.getElementById("tavlaRensa").onclick = () => {
+    if (confirm("Ta bort alla resultat från poängtavlan?")) { sparaTavla([]); ritaTavla(); }
+  };
+
+  function visaFraga() {
+    const f = frågor[nr];
+    aktuellt = f.land;
+    frågetyp = f.typ;
+    markerat = null;
+    felMarkerat = null;
+    visaPrickFor = null;
+    document.getElementById("slutknappar").style.display = "none";
+    document.getElementById("namnruta").style.display = "none";
+
+    // Första gången vi visar frågan lottar vi alternativ och frågetext. Efteråt ligger de kvar i "f".
+    if (!f.alt) {
+      const fel = blanda(aktuellt.grannar.slice(0, NARA)).slice(0, 3);
+      f.alt = blanda([aktuellt.namn, ...fel]);
+      const klick = f.sätt === "klick";
+      if (f.typ === "huvudstad") {
+        f.text = klick
+          ? (Math.random() < 0.5 ? "Klicka på landet som har huvudstaden " + aktuellt.huvudstad
+                                 : "Klicka på landet där " + aktuellt.huvudstad + " ligger")
+          : (Math.random() < 0.5 ? "Vilket land har huvudstaden " + aktuellt.huvudstad + "?"
+                                 : "I vilket land ligger huvudstaden " + aktuellt.huvudstad + "?");
+        f.mal = raknaAlternativsVy([aktuellt, ...fel.map(n => länder.find(l => l.namn === n))].filter(Boolean));
+      } else {
+        f.text = klick ? "Klicka på " + aktuellt.namn
+                       : f.typ === "hav" ? "Vilket hav är markerat?" : "Vilket land är markerat?";
+      }
+    }
+    document.getElementById("fraga").textContent = f.text;
+
+    // Knapparna
+    const ruta = document.getElementById("svar");
+    ruta.innerHTML = "";
+    (f.sätt === "klick" ? [] : f.alt).forEach((namn, i) => {
+      const knapp = document.createElement("button");
+      knapp.dataset.namn = namn;
+      knapp.innerHTML = '<span class="tangent">' + visaTangent(tangenter["svar" + i]) + "</span>";
+      knapp.appendChild(document.createTextNode(namn));
+      knapp.onclick = () => svara(namn);
+      ruta.appendChild(knapp);
+    });
+
+    // Klotet
+    if (f.val === null && f.typ === "huvudstad") {
+      flygTill(f.mal);                          // området runt alternativen, utan att peka ut svaret
+    } else if (f.val === null && f.sätt === "klick") {
+      flygTill(REGIONER[senasteRunda.region].vy);   // klotet står still i regionen, så att svaret inte avslöjas
+    } else {
+      markerat = aktuellt;                      // färga landet (eller havet) rosa och snurra dit
+      flygTillLand(aktuellt);
+    }
+    uppdateraStatus();
+  }
+
+  // Uppdaterar allt som beror på om frågan är besvarad eller inte
+  function uppdateraStatus() {
+    const f = frågor[nr];
+    besvarad = f.val !== null;
+    poäng = frågor.filter(x => x.val !== null && x.val === x.land.namn).length;
+    document.getElementById("status").textContent =
+      "Fråga " + (nr + 1) + " av " + frågor.length + " – Poäng: " + poäng;
+    document.getElementById("tillbaka").style.display = nr > 0 ? "" : "none";
+    // Knappen 🔍 skulle avslöja svaret på huvudstadsfrågor, så den göms tills du har svarat
+    document.getElementById("zoomVisa").style.display = ((f.typ === "huvudstad" || f.sätt === "klick") && !besvarad) ? "none" : "";
+
+    for (const k of document.querySelectorAll("#svar button")) {
+      k.disabled = besvarad;
+      k.classList.toggle("ratt", besvarad && k.dataset.namn === aktuellt.namn);
+      k.classList.toggle("fel", besvarad && k.dataset.namn === f.val && f.val !== aktuellt.namn);
+    }
+    const nasta = document.getElementById("nasta");
+    if (besvarad) {
+      markerat = aktuellt;
+      visaPrickFor = aktuellt;
+      felMarkerat = f.klickat && f.klickat !== aktuellt ? f.klickat : null;
+      const facit = aktuellt.huvudstad
+        ? aktuellt.namn + " – huvudstad: " + aktuellt.huvudstad
+        : aktuellt.namn;
+      document.getElementById("facit").textContent =
+        f.sätt === "klick" && f.val !== aktuellt.namn ? "Du klickade på " + f.val + ". Rätt svar: " + facit : facit;
+      nasta.textContent = nr + 1 < frågor.length ? "Nästa fråga" : "Se resultat";
+      nasta.style.display = "block";
+    } else {
+      document.getElementById("facit").textContent = "";
+      nasta.style.display = "none";
+    }
+    ritaSnart();
+  }
+
+  // Vad ligger under en punkt på skärmen? Svarar med { obj, alla } eller null.
+  function hittaUnder(x, y, typ) {
+    const punkt = projektion.invert([x, y]);
+    if (!punkt) return null;                                   // utanför klotet
+    const landTraff = länder.filter(l => d3.geoContains(l.feature, punkt));
+    const havTraff = hav.filter(h => d3.geoContains(h.feature, punkt))
+      .sort((a, b) => d3.geoArea(a.feature) - d3.geoArea(b.feature));   // minsta havet först
+    if (typ === "hav" && havTraff.length) return { obj: havTraff[0], alla: havTraff };
+    if (landTraff.length) return { obj: landTraff[0], alla: landTraff };
+    if (typ !== "hav") {
+      // Missade du landet med några pixlar? Ge ett litet hjälpavstånd, så att små länder går att träffa.
+      const dpr = window.devicePixelRatio || 1;
+      ctx.save(); ctx.lineWidth = 14;
+      const nara = länder.filter(l => { ctx.beginPath(); bana(l.feature); return ctx.isPointInStroke(x * dpr, y * dpr); })
+        .sort((a, b) => a.storlek - b.storlek);
+      ctx.restore();
+      if (nara.length) return { obj: nara[0], alla: nara };
+    }
+    return null;
+  }
+
+  function klickPaKlotet(e) {
+    if (menylage) { klickIMeny(e); return; }
+    if (!skarmSynlig("spel") || !frågor[nr]) return;
+    const f = frågor[nr];
+    if (f.sätt !== "klick" || f.val !== null) return;
+    const r = canvas.getBoundingClientRect();
+    const traff = hittaUnder(e.clientX - r.left, e.clientY - r.top, f.typ);
+    if (!traff) {
+      document.getElementById("facit").textContent = "Du klickade på vatten eller utanför klotet – försök igen.";
+      return;
+    }
+    const rätt = traff.alla.some(o => o === aktuellt || o.ingarI === aktuellt.namn);   // ett delhav räknas som rätt om du söker helheten
+    f.klickat = traff.obj;
+    svara(rätt ? aktuellt.namn : traff.obj.namn);
+  }
+
+  function svara(namn) {
+    const f = frågor[nr];
+    if (f.val !== null) return;       // redan besvarad
+    f.val = namn;
+    uppdateraStatus();
+  }
+
+  function gaVidare() {
+    document.getElementById("nasta").blur();       // släpp tangentbordsfokus, så att Enter inte klickar på den dolda knappen igen
+    nr++;
+    if (nr < frågor.length) { visaFraga(); }
+    else { slut(); }
+  }
+  function gaTillbaka() {
+    if (nr <= 0) return;
+    nr--;
+    visaFraga();
+  }
+  document.getElementById("nasta").onclick = gaVidare;
+  document.getElementById("tillbaka").onclick = (e) => { e.target.blur(); gaTillbaka(); };
+  document.getElementById("tillMenyn").onclick = (e) => { e.target.blur(); visaSkarm("klotmeny"); };
+  document.getElementById("igen").onclick = () => startaRunda(senasteRunda);          // samma värden, nya frågor
+  document.getElementById("nyMeny").onclick = () => visaSkarm("klotmeny");
+
+  // Tangentbordet
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;       // lämna webbläsarens egna kommandon ifred (Ctrl+F5 m.fl.)
+
+    // Byte av snabbtangent pågår: nästa tangent blir den nya
+    if (lyssnarPa) {
+      e.preventDefault();
+      if (e.key !== "Escape") {
+        const ny = normaliseraTangent(e.key);
+        const upptagen = Object.keys(tangenter).find(id => tangenter[id] === ny);
+        if (upptagen && upptagen !== lyssnarPa) tangenter[upptagen] = tangenter[lyssnarPa];   // byt plats
+        tangenter[lyssnarPa] = ny;
+        sparaTangenter();
+      }
+      lyssnarPa = null;
+      ritaTangentlista();
+      return;
+    }
+    if (e.repeat) return;                                  // tangenten hålls nere, då gör vi inget
+    if (e.target.tagName === "INPUT" && e.target.type === "text") {      // man skriver sitt namn
+      if (e.key === "Enter") document.getElementById("sparaNamn").click();
+      return;
+    }
+    const tangent = normaliseraTangent(e.key);
+
+    if (skarmSynlig("egenmeny")) {
+      if (e.key === "Enter" && !document.getElementById("starta").disabled && document.activeElement.tagName !== "SELECT") {
+        e.preventDefault();
+        document.getElementById("starta").click();
+      }
+      return;
+    }
+    if (!skarmSynlig("spel")) return;
+    if (menylage) {
+      if (e.key === "Enter") { e.preventDefault(); startaFranKlot(); }
+      return;
+    }
+
+    if (document.getElementById("slutknappar").style.display === "flex") {
+      if (tangent === tangenter.tillbaka) { e.preventDefault(); gaTillbaka(); }
+      return;
+    }
+    if (tangent === tangenter.nasta) {
+      e.preventDefault();                          // hindra webbläsaren från att också "klicka" på en knapp
+      if (document.getElementById("nasta").style.display === "block") gaVidare();
+    } else if (tangent === tangenter.tillbaka) {
+      e.preventDefault();
+      gaTillbaka();
+    } else {
+      for (let i = 0; i < 4; i++) {
+        if (tangent === tangenter["svar" + i]) {
+          e.preventDefault();
+          const f = frågor[nr];
+          if (f && f.val === null && f.sätt !== "klick" && f.alt[i]) svara(f.alt[i]);
+        }
+      }
+    }
+  });
+
+  function slut() {
+    nr = frågor.length;            // "efter sista frågan", så att ◀ Föregående visar sista frågan igen
+    markerat = null;
+    visaPrickFor = null;
+    aktuellt = null;
+    flygTill({ lon: vy.lon, lat: 20, zoom: 1 });
+    document.getElementById("facit").textContent = "";
+    document.getElementById("zoomVisa").style.display = "none";
+    document.getElementById("status").textContent = "Klart!";
+    document.getElementById("fraga").textContent =
+      "Du fick " + poäng + " av " + frågor.length + " rätt.";
+    document.getElementById("svar").innerHTML = "";
+    document.getElementById("nasta").style.display = "none";
+    document.getElementById("tillbaka").style.display = "";
+    document.getElementById("slutknappar").style.display = "flex";
+    // Fråga efter namn, så att rundan kan hamna på poängtavlan
+    senastePost = null;
+    const namnruta = document.getElementById("namnruta");
+    if (senasteRunda.tavling) {
+      namnruta.style.display = "flex";
+      document.getElementById("namnFalt").value = hamtaSistaNamn();
+      document.getElementById("namnFalt").focus();
+    } else {
+      namnruta.style.display = "none";
+      document.getElementById("fraga").textContent += " Träningsrunda – den kommer inte med på poängtavlan.";
+    }
+  }
+
+  // ----- Menyn på klotet -----
+  const KONT_TILL_REGION = {};
+  for (const [namn, r] of Object.entries(REGIONER)) if (r.kontinent) KONT_TILL_REGION[r.kontinent] = namn;
+  const kp = { region: "Hela världen", typer: [true, true, true], antal: 10 };   // typer = [länder, huvudstäder, hav]
+  const KP_TYPER = ["🗺️ Länder", "🏛️ Huvudstäder", "🌊 Hav"];
+  const KP_ANTAL = [5, 25, 50, "Max"];
+
+  // Mest rätt antal frågor med de val som är gjorda
+  // Vilka typer är på? Typer som saknas i regionen (t.ex. hav i Sydamerika) räknas som av, men ditt val ligger kvar
+  function kpPa() {
+    const p = poolerFor(kp.region, false);
+    const finns = [p.land.length > 0, p.huvud.length > 0, p.hav.length > 0];
+    const pa = kp.typer.map((t, i) => t && finns[i]);
+    return pa.some(Boolean) ? pa : finns;
+  }
+  function kpAndelar() { return kpPa().map(t => t ? 1 : 0); }
+  function kpMax() { return storstaN(kpAndelar(), poolerFor(kp.region, false)); }
+  function kpN() { const max = kpMax(); return kp.antal === "Max" ? max : Math.min(kp.antal, max); }
+
+  function chip(text, aktiv, avstangd, onclick) {
+    const k = document.createElement("button");
+    k.className = "chip" + (aktiv ? " pa" : "");
+    k.textContent = text; k.disabled = avstangd; k.onclick = (e) => { e.target.blur(); onclick(); };
+    return k;
+  }
+  function ritaKlotpanel() {
+    document.getElementById("kpRegionNamn").textContent = kp.region === "Hela världen" ? "Hela världen" : kp.region;
+    const p = poolerFor(kp.region, false);
+    const pooler = [p.land, p.huvud, p.hav];
+    const pa = kpPa();
+
+    const typer = document.getElementById("kpTyper"); typer.innerHTML = "";
+    KP_TYPER.forEach((namn, i) => typer.appendChild(chip(namn, pa[i], pooler[i].length === 0, () => {
+      kp.typer[i] = !pa[i];
+      if (!kpPa().some(Boolean) || kpPa().every((x, j) => x === false)) kp.typer[i] = true;
+      if (!kp.typer.some((t, j) => t && pooler[j].length > 0)) kp.typer[i] = true;      // minst en typ måste vara på
+      ritaKlotpanel();
+    })));
+    const max = kpMax();
+    const antal = document.getElementById("kpAntal"); antal.innerHTML = "";
+    for (const a of KP_ANTAL) {
+      const avstangd = a !== "Max" && a > max;
+      antal.appendChild(chip(a === "Max" ? "Max (" + max + ")" : a, kp.antal === a, avstangd, () => { kp.antal = a; ritaKlotpanel(); }));
+    }
+    const satt = document.getElementById("kpSatt"); satt.innerHTML = "";
+    for (const [k, namn] of Object.entries(SATT)) {
+      satt.appendChild(chip(namn, svarssatt === k, false, () => {
+        svarssatt = k;
+        try { localStorage.setItem("kartquiz_satt", k); } catch (e) {}
+        for (const id of ["pSatt", "mSatt"]) document.getElementById(id).value = k;
+        ritaKlotpanel();
+      }));
+    }
+    const a = fordela(kpN(), kpAndelar());
+    document.getElementById("kpSammanfattning").textContent =
+      kpN() + " frågor: " + a[0] + " länder, " + a[1] + " huvudstäder, " + a[2] + " hav";
+  }
+
+  function valjRegion(namn) {
+    kp.region = namn;
+    valdKontinent = REGIONER[namn].kontinent;
+    flygTill(REGIONER[namn].vy);
+    ritaKlotpanel();
+  }
+
+  function landUnder(e) {
+    const r = canvas.getBoundingClientRect();
+    const punkt = projektion.invert([e.clientX - r.left, e.clientY - r.top]);
+    if (!punkt) return { utanfor: true };
+    return { land: länder.find(l => d3.geoContains(l.feature, punkt)) };
+  }
+  function hovraMeny(e) {
+    const t = landUnder(e);
+    const ny = t.land && KONT_TILL_REGION[t.land.kontinent] ? t.land.kontinent : null;
+    if (ny !== hoverKontinent) { hoverKontinent = ny; canvas.style.cursor = ny ? "pointer" : ""; ritaSnart(); }
+  }
+  function klickIMeny(e) {
+    const t = landUnder(e);
+    if (t.utanfor) return;
+    const region = t.land && KONT_TILL_REGION[t.land.kontinent];
+    valjRegion(region || "Hela världen");                // klick på havet = hela världen
+  }
+
+  // Klotet snurrar långsamt i menyn så länge hela världen är vald
+  let spinnar = false;
+  function spinnTick() {
+    if (!menylage) { spinnar = false; return; }
+    if (!animation && !drag && kp.region === "Hela världen") { vy.lon += 0.1; rita(); }
+    requestAnimationFrame(spinnTick);
+  }
+  function startaKlotmeny() {
+    markerat = null; felMarkerat = null; visaPrickFor = null; aktuellt = null;
+    valdKontinent = REGIONER[kp.region].kontinent; hoverKontinent = null;
+    document.getElementById("zoomVisa").style.display = "none";
+    Object.assign(vy, { lat: REGIONER[kp.region].vy.lat, zoom: kp.region === "Hela världen" ? 1 : vy.zoom });
+    if (kp.region !== "Hela världen") flygTill(REGIONER[kp.region].vy);
+    ritaKlotpanel();
+    rita();
+    if (!spinnar) { spinnar = true; requestAnimationFrame(spinnTick); }
+  }
+  function startaFranKlot() {
+    const n = kpN();
+    if (n < 1) return;
+    startaRunda({ andelar: kpAndelar(), n, region: kp.region, bara_stora: false, satt: svarssatt });
+  }
+  document.getElementById("kpStarta").onclick = startaFranKlot;
+  document.getElementById("kpMer").onclick = () => visaSkarm("huvudmeny");
+  document.getElementById("tillKlot").onclick = () => visaSkarm("klotmeny");
+  for (const el of [".toppknappar", "#status", ".tips", "#fraga", "#svar", "#facit", "#slutknappar"]) document.querySelector(el).classList.add("quizdel");
+  document.getElementById("nasta").parentElement.classList.add("quizdel");
+
+  ritaPresets();
+  uppdateraEgen();
+  visaSkarm("klotmeny");
+</script>
+</body>
+</html>

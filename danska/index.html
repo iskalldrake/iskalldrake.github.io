@@ -1,0 +1,1339 @@
+<!doctype html>
+<!--
+  ============================================================
+  DANSKA ORD – övningsprogram
+  ============================================================
+  En HTML-fil består av tre delar, och de ligger i den här ordningen:
+    1. <style>  = UTSEENDET (färger, storlekar, marginaler)  – "CSS"
+    2. <body>   = SIDANS BYGGKLOSSAR (rubrik, knappar)       – "HTML"
+    3. <script> = HJÄRNAN (vad som händer när du klickar)    – "JavaScript"
+  Rader som börjar med // eller ligger mellan /* och */ är kommentarer.
+  Datorn ignorerar dem, de är bara till för dig.
+
+  Filer som hör ihop med den här:
+    ord.js        = de 100 orden som låses upp 10 åt gången
+    ord-teman.js  = teman (siffror, färger, meningar ...) som är öppna direkt
+-->
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Danska ord</title>
+<!-- Typsnitten (Fraunces och Inter) hämtas från Google Fonts. Utan internet används datorns vanliga typsnitt. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     GRUNDUTSEENDE. Varje block är en "regel": först VAD som ska
+     stylas, sedan { hur }. Färgerna står som variabler (--namn)
+     i :root, så att hela utseendet kan bytas på ett ställe.
+     var(--text) betyder "använd färgen som står i --text".
+     ============================================================ */
+  body { font-family:var(--font); background:var(--bakgrund); color:var(--text); margin:0; line-height:1.45; }
+  main { max-width:600px; margin:0 auto; padding:24px 16px 48px; text-align:center; }
+  h1 { margin:.2em 0 .4em; font-weight:700; font-family:var(--rubrik-font); }
+
+  /* Knappar och textfält */
+  button { font:inherit; font-size:1rem; padding:10px 16px; margin:5px 3px; border-radius:var(--radie);
+           border:1px solid var(--kant); background:var(--yta); color:var(--text); cursor:pointer;
+           transition:background .15s, border-color .15s, transform .1s; }
+  button:hover { background:var(--yta-hover); }
+  button:active { transform:scale(.97); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .aktiv { border-color:var(--accent); font-weight:700; }
+  .primar { background:var(--accent); border-color:var(--accent); color:var(--pa-accent); font-weight:700; }
+  .primar:hover { background:var(--accent); filter:brightness(1.1); }
+
+  input, select { font:inherit; font-size:1.4rem; padding:10px; width:80%; border-radius:var(--radie);
+                  border:2px solid var(--kant); background:var(--yta); color:var(--text);
+                  text-align:center; margin:12px 0 6px; box-sizing:border-box; }
+  input:focus { outline:none; border-color:var(--accent); }
+  input::placeholder { color:var(--dov-text); }
+
+  /* Lägesknapparna högst upp */
+  .lagen { display:flex; flex-wrap:wrap; justify-content:center; gap:4px; }
+  .lagen button { margin:0; }
+
+  /* Temaraden: små runda "piller" */
+  .teman-ruta { margin:14px 0 4px; }
+  .teman-rubrik { color:var(--dov-text); font-size:.75rem; margin:0 0 4px; letter-spacing:.08em; text-transform:uppercase; }
+  .teman button { font-size:.85rem; padding:5px 11px; margin:3px 2px; border-radius:999px; }
+
+  /* Statistikbrickorna. flex-wrap = hoppa ner en rad om skärmen är smal. */
+  .brickor { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:12px 0 8px; }
+  .bricka { background:var(--yta); border:1px solid var(--kant); border-radius:999px;
+            padding:4px 12px; font-size:.88rem; color:var(--dov-text); }
+  .bricka b { color:var(--text); }
+
+  /* Stapeln mot nästa upplåsning */
+  .mot-nasta { font-size:.85rem; color:var(--dov-text); margin-bottom:16px; }
+  .skena { height:8px; background:var(--yta); border:1px solid var(--kant); border-radius:6px;
+           overflow:hidden; margin:5px auto 0; max-width:360px; }
+  .fyllning { height:100%; background:var(--stapel, var(--accent)); transition:width .5s; }
+
+  /* Meddelandet "🔓 10 nya ord upplåsta!" */
+  .meddelande { color:var(--text); background:var(--ratt-bg); border-radius:var(--radie); padding:8px; }
+  .meddelande:empty { display:none; }
+
+  /* Ordkortet */
+  .card { background:var(--kort-bg, var(--yta)); border:1px solid var(--kant); border-radius:calc(var(--radie) + 6px);
+          padding:40px 16px; font-size:2.3rem; font-family:var(--kort-font); min-height:70px;
+          overflow-wrap:anywhere; }
+  .card.mening { font-size:1.55rem; }
+  .card.vandbart { cursor:pointer; user-select:none; }
+  .card.vant { border-color:var(--accent); }
+
+  /* Lådmätaren: 5 rutor (låda 1–5) och 3 prickar (rätt i rad) */
+  .matare { color:var(--dov-text); font-size:.85rem; margin:10px 0 0; }
+  .ruta { display:inline-block; width:14px; height:14px; border-radius:3px; margin:0 2px;
+          vertical-align:-2px; background:var(--yta); border:1px solid var(--kant); }
+  .ruta.full { background:var(--accent); border-color:var(--accent); }
+  .prick { color:var(--kant); }
+  .prick.full { color:var(--ratt-text); }
+
+  /* Rätt (grönt) och fel (rött). !important = "slå alla andra regler" */
+  .ratt { background:var(--ratt-bg) !important; }
+  .fel  { background:var(--fel-bg) !important; }
+  .val  { display:block; width:100%; margin:6px 0; }
+  .tecken button { min-width:46px; }
+
+  /* "Flot!" eller "Inte riktigt" – fast höjd så att sidan inte hoppar */
+  .svar { font-size:1.3rem; min-height:1.6em; margin:8px 0 2px; font-weight:700; }
+  .info { color:var(--dov-text); font-size:.95rem; }
+
+  /* Bokstavsjämförelsen när du svarat fel */
+  .jamfor { font-size:1.25rem; margin:4px 0; letter-spacing:.04em; }
+  .jamfor .etikett { color:var(--dov-text); font-size:.85rem; letter-spacing:0; margin-right:6px; }
+  .fel-bokstav  { color:var(--fel-text);  text-decoration:underline wavy; text-underline-offset:4px; }
+  .ratt-bokstav { color:var(--ratt-text); text-decoration:underline; text-underline-offset:4px; font-weight:700; }
+  .lucka { color:var(--fel-text); }
+  .ledtrad { color:var(--dov-text); font-size:.95rem; margin:2px 0 6px; }
+
+  /* Studsen på kortet: liten "pop" vid rätt, liten skakning vid fel */
+  .studs-ratt { animation:pop .35s ease-out; }
+  .studs-fel  { animation:skaka .35s ease-in-out; }
+  @keyframes pop   { 50% { transform:scale(1.04); } }
+  @keyframes skaka { 25% { transform:translateX(-6px); } 75% { transform:translateX(6px); } }
+
+  /* Ordlistan */
+  .sammanfattning { color:var(--dov-text); margin:8px 0; }
+  .sammanfattning b { color:var(--text); }
+  .lista-sok { display:flex; gap:6px; margin:8px 0; }
+  .lista-sok input, .lista-sok select { font-size:1rem; margin:0; padding:8px; }
+  .lista-sok input { flex:2; min-width:0; }
+  .lista-sok select { flex:1; width:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.95rem; text-align:left; }
+  th { color:var(--dov-text); font-weight:500; font-size:.8rem; padding:6px 4px; border-bottom:1px solid var(--kant); }
+  td { padding:6px 4px; border-bottom:1px solid var(--yta); }
+  tr.last td { opacity:.4; }
+  td .ruta { width:9px; height:9px; margin:0 1px; }
+
+  /* Veckodiagrammet: 7 staplar ("pelare") bredvid varandra */
+  .vecka { display:flex; align-items:flex-end; justify-content:space-between; gap:6px;
+           height:110px; margin:8px 0 18px; padding:8px; background:var(--yta);
+           border:1px solid var(--kant); border-radius:var(--radie); }
+  .dag { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%;
+         font-size:.75rem; color:var(--dov-text); }
+  .pelare { width:70%; background:var(--fel-bg); border-radius:4px 4px 0 0; display:flex;
+            flex-direction:column; justify-content:flex-end; overflow:hidden; min-height:2px; }
+  .pelare-ratt { background:var(--ratt-text); opacity:.75; }
+
+  /* Vill datorn ha mindre rörelse (inställning i Windows)? Då stänger vi av animationerna. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+  }
+
+  /* ============================================================
+     DESIGN: HYGGE (vald 2026-11-10)
+     Varmt och mysigt som en kväll med levande ljus: mörkbrun
+     bakgrund, krämvit text, senapsgul och terrakotta accent.
+     Orden visas i ett elegant typsnitt med seriffer (Fraunces).
+     ============================================================ */
+  :root {
+    color-scheme: dark;
+    --bakgrund: #1d1815;
+    --yta:      #29221d;
+    --yta-hover:#342b25;
+    --kant:     #43372e;
+    --text:     #efe5d6;
+    --dov-text: #a8998a;
+    --accent:   #e2b25c;       /* senapsgul, som ljuslåga */
+    --pa-accent:#2a1f12;
+    --ratt-bg:  #2c3a27;
+    --fel-bg:   #4a2a22;
+    --ratt-text:#9cc48c;       /* salviagrön */
+    --fel-text: #e79a80;       /* terrakotta */
+    --radie:    12px;
+    --font:        "Inter", system-ui, "Segoe UI", sans-serif;
+    --rubrik-font: "Fraunces", Georgia, serif;
+    --kort-font:   "Fraunces", Georgia, serif;
+    --kort-bg:  radial-gradient(500px 200px at 50% 0%, #3a2f26, #29221d);
+    --stapel:   linear-gradient(90deg, #d0745a, #e2b25c);
+  }
+  /* Ett varmt sken i mitten av sidan, som från ett stearinljus */
+  body { background:
+          radial-gradient(700px 500px at 50% 20%, rgba(226,178,92,.07), transparent 70%),
+          var(--bakgrund); min-height:100vh; }
+  h1 { font-size:2.4rem; font-weight:600; letter-spacing:-.01em; }
+  .card { font-weight:500; box-shadow:0 12px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,235,200,.06); }
+  .card.mening { font-style:italic; }
+  /* Lägesknapparna som "flikar" med en linje under den valda */
+  .lagen { border-bottom:1px solid var(--kant); padding-bottom:6px; }
+  .lagen button { background:transparent; border-color:transparent; }
+  .lagen button.aktiv { color:var(--accent); border-color:transparent; box-shadow:inset 0 -2px 0 var(--accent); border-radius:6px 6px 0 0; }
+  .teman button.aktiv { background:var(--accent); color:var(--pa-accent); }
+  .svar { font-family:var(--rubrik-font); font-weight:600; }
+
+  /* ---------- FINLIR: lugn rörelse och detaljer ---------- */
+
+  /* Scrollbar och markerad text i samma varma färger (fungerar i Firefox) */
+  :root { scrollbar-color: var(--kant) var(--bakgrund); }
+  ::selection { background:rgba(226,178,92,.35); }
+
+
+  .underrubrik { font-family:var(--rubrik-font); font-style:italic; color:var(--dov-text); margin:-.5em 0 1em; font-size:1.05rem; }
+  .lagen button { transition:color .2s, box-shadow .25s, background .2s; }
+
+  /* Nytt innehåll (ny fråga, nytt läge) glider in mjukt.
+     "both" = börja osynlig och stanna synlig när animationen är klar.
+     Varje del kommer lite efter den förra (animation-delay), som en våg. */
+  #innehall { min-height:420px; }           /* sidan hoppar inte när innehållet byts */
+  #innehall.in > * { animation:inGlid .32s ease both; }
+  #innehall.in > *:nth-child(2) { animation-delay:.03s; }
+  #innehall.in > *:nth-child(3) { animation-delay:.06s; }
+  #innehall.in > *:nth-child(4) { animation-delay:.09s; }
+  #innehall.in > *:nth-child(5) { animation-delay:.12s; }
+  #innehall.in > *:nth-child(n+6) { animation-delay:.15s; }
+  @keyframes inGlid { from { opacity:0; transform:translateY(8px); } }
+
+  /* Svaret och bokstavsjämförelsen tonar fram */
+  .svar:not(:empty), .skillnad { animation:inGlid .25s ease both; }
+  input { transition:background .25s, border-color .25s; }
+
+  /* Brickan vars siffra just ändrades lyser upp kort */
+  .bricka { transition:background .3s; }
+  .bricka.pulsa { animation:puls .6s ease; }
+  @keyframes puls { 30% { background:rgba(226,178,92,.22); border-color:var(--accent); } }
+
+  /* Stapeln glider mjukt till sin nya bredd */
+  .fyllning { transition:width .7s cubic-bezier(.2,.8,.2,1); }
+
+  /* Lådrutan som just fylldes poppar upp */
+  .ruta { transition:background .3s, border-color .3s; }
+  .ruta.ny { animation:rutaPop .45s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes rutaPop { 0% { transform:scale(.4); } 100% { transform:scale(1); } }
+
+  /* Flashcards: kortet vänds (se visaKort i koden) */
+  .card.vandbart { transition:transform .14s ease-in, border-color .2s; }
+
+  /* Knappen "Nästa" när appen går vidare av sig själv: en tunn stapel fylls i botten */
+  .primar.vantar { position:relative; overflow:hidden; }
+  .primar.vantar::after { content:""; position:absolute; left:0; bottom:0; height:3px; width:0;
+    background:var(--pa-accent); opacity:.45; animation:autoFyll var(--auto, 900ms) linear forwards; }
+  @keyframes autoFyll { to { width:100%; } }
+
+  /* När intron är klar ligger sidan redan färdig under den, och intron tonar
+     bara bort. (Förut gled sidans delar också in, men i Firefox gav det ett litet
+     "hack" när animationerna tog slut, så det är borttaget.) */
+
+  /* ---------- FOKUSLÄGE: topprad och meny ---------- */
+  /* Toppraden: titel till vänster, menyknapp till höger. "position:relative" gör
+     att menyn (som ligger inuti) kan placeras precis under raden. */
+  .topp { display:flex; align-items:center; justify-content:space-between; gap:12px;
+          position:relative; margin:0 0 22px; }
+  .topp h1 { font-size:1.6rem; margin:0; white-space:nowrap; }
+  .meny-knapp { margin:0; padding:8px 14px; border-radius:999px; font-size:.92rem; white-space:nowrap;
+                background:var(--yta); max-width:62%; overflow:hidden; text-overflow:ellipsis; }
+  .meny-knapp .pil { display:inline-block; margin-left:4px; color:var(--accent); transition:transform .2s; }
+  .meny-knapp[aria-expanded="true"] { border-color:var(--accent); }
+  .meny-knapp[aria-expanded="true"] .pil { transform:rotate(180deg); }
+
+  /* Menyn: gömd från början, flyter ovanpå sidan under toppraden */
+  .meny { display:none; position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:20;
+          text-align:left; padding:14px 16px 16px; border-radius:16px;
+          background:#2b231e; border:1px solid var(--kant);
+          box-shadow:0 18px 40px rgba(0,0,0,.55); }
+  .meny-rubrik { color:var(--dov-text); font-size:.72rem; letter-spacing:.09em; text-transform:uppercase;
+                 margin:12px 0 6px; }
+  .meny-rubrik:first-child { margin-top:0; }
+  /* Lägesknapparna som ett rutnät av små kort i menyn */
+  .meny .lagen { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:6px;
+                 border:none; padding:0; }
+  .meny .lagen button { background:var(--bakgrund); border:1px solid var(--kant); border-radius:10px;
+                        box-shadow:none; text-align:left; padding:10px 12px; color:var(--text); }
+  .meny .lagen button:hover { background:var(--yta-hover); }
+  .meny .lagen button.aktiv { background:var(--accent); border-color:var(--accent); color:var(--pa-accent); }
+  .meny .teman, .meny .brickor { text-align:left; justify-content:flex-start; margin:0; }
+  .meny .teman button { margin:0 4px 6px 0; }
+
+  /* MÅLRADEN: "18/20 klarade · 2 kvar till nya ord" och stapeln under */
+  .mot-nasta { margin:0 0 18px; }
+  .mal { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:center; gap:4px 10px;
+         margin:0 0 8px; font-size:.95rem; color:var(--dov-text); }
+  .mal-siffra { font-family:var(--rubrik-font); font-size:1.8rem; color:var(--dov-text); line-height:1; }
+  .mal-siffra b { color:var(--accent); font-weight:600; }
+  .mal-survivor { flex-basis:100%; color:var(--text); font-weight:600; }
+  .mot-nasta .skena { height:10px; max-width:440px; border-radius:99px; }
+  .mot-nasta .fyllning { border-radius:99px; }
+
+  /* ============================================================
+     INTRON (se avsnitt 5 i koden). Rutan täcker hela fönstret.
+     ============================================================ */
+  #intro { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+           background:radial-gradient(600px 420px at 50% 45%, #2a211a, var(--bakgrund) 70%);
+           /* Nödstopp: om något i koden går sönder försvinner intron ändå efter 9 sekunder */
+           animation:nodstopp 0s 9s forwards; cursor:pointer; }
+  @keyframes nodstopp { to { opacity:0; visibility:hidden; } }
+
+  .scen { text-align:center; }
+  /* Texterna tonar fram en i taget */
+  .scen > * { animation:inGlid .7s ease both; }
+  .intro-titel  { font-family:var(--rubrik-font); font-size:2.6rem; font-weight:600; margin:18px 0 4px; animation-delay:.7s !important; min-height:1.3em; }
+  .intro-text   { font-family:var(--rubrik-font); font-style:italic; font-size:1.25rem; color:var(--accent); margin:0; animation-delay:1.0s !important; }
+  .intro-text span { color:var(--dov-text); font-size:.95rem; }
+  .intro-status { color:var(--dov-text); font-size:.9rem; margin:14px 0 0; animation-delay:1.3s !important; }
+  @keyframes inGlid { from { opacity:0; transform:translateY(8px); } }
+
+  /* --- STIL "ljus": ett stearinljus tänds och sprider ett varmt sken --- */
+  .ljus { position:relative; width:120px; height:130px; margin:0 auto; animation:none !important; }
+  .stearin { position:absolute; left:50%; bottom:0; width:26px; height:70px; margin-left:-13px; border-radius:4px 4px 3px 3px;
+             background:linear-gradient(90deg, #d9cbb4, #f3e8d6 45%, #cbbba2); box-shadow:0 0 0 1px rgba(0,0,0,.2); }
+  .veke { position:absolute; left:50%; bottom:68px; width:2px; height:9px; margin-left:-1px; background:#2b2118; border-radius:1px; }
+  .laga { position:absolute; left:50%; bottom:74px; width:16px; height:32px; margin-left:-8px;
+          border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;
+          background:radial-gradient(circle at 50% 75%, #fff6d8 0 18%, #ffd27a 38%, #f29a3a 70%, rgba(242,120,40,0) 100%);
+          transform-origin:50% 90%; transform:scale(0);
+          animation:tand .5s .25s cubic-bezier(.3,1.5,.5,1) forwards, flimmer 1.6s .75s ease-in-out infinite; }
+  .sken { position:absolute; left:50%; bottom:40px; width:340px; height:340px; margin:0 0 -170px -170px;
+          border-radius:50%; background:radial-gradient(circle, rgba(255,190,90,.28), rgba(255,170,70,0) 65%);
+          opacity:0; animation:skenUpp 1.2s .35s ease-out forwards; }
+  @keyframes tand    { to { transform:scale(1); } }
+  @keyframes flimmer { 0%,100% { transform:scale(1) rotate(-1deg); } 30% { transform:scale(1.04,.96) rotate(1.5deg); }
+                       60% { transform:scale(.97,1.05) rotate(-1.5deg); } }
+  @keyframes skenUpp { from { opacity:0; transform:scale(.4); } to { opacity:1; transform:scale(1); } }
+
+  /* --- STIL "flagga": Dannebrog ritas, först det röda, sedan korset --- */
+  .dk-flagga { position:relative; width:168px; height:120px; margin:0 auto; border-radius:6px; overflow:hidden;
+               background:#b8323a; box-shadow:0 12px 30px rgba(0,0,0,.4);
+               transform-origin:0 50%; animation:flaggaIn .6s .1s cubic-bezier(.2,.8,.2,1) both, vaj 2.4s 1.1s ease-in-out infinite !important; }
+  .kors-lodratt, .kors-vagratt { position:absolute; background:#f3ece2; }
+  .kors-lodratt { left:50px; top:0; width:18px; height:100%; transform:scaleY(0); transform-origin:50% 0;
+                  animation:lodratt .4s .6s ease-out forwards; }
+  .kors-vagratt { left:0; top:51px; width:100%; height:18px; transform:scaleX(0); transform-origin:0 50%;
+                  animation:vagratt .45s .85s ease-out forwards; }
+  @keyframes flaggaIn { from { transform:scaleX(0); opacity:0; } }
+  @keyframes lodratt  { to { transform:scaleY(1); } }
+  @keyframes vagratt  { to { transform:scaleX(1); } }
+  @keyframes vaj      { 0%,100% { transform:skewY(0); } 50% { transform:skewY(-2deg); } }
+
+  /* --- STIL "hej": titeln skrivs ut med en blinkande markör --- */
+  #intro[data-stil="hej"] .intro-titel { animation-delay:0s !important; font-size:3rem; }
+  .markor { display:inline-block; width:3px; height:.9em; margin-left:4px; vertical-align:-.08em;
+            background:var(--accent); animation:blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+
+  /* Mindre rörelse önskas: visa allt direkt utan animationer */
+  @media (prefers-reduced-motion: reduce) {
+    .laga { transform:scale(1); } .sken { opacity:1; }
+    .kors-lodratt, .kors-vagratt { transform:none; }
+  }
+</style>
+</head>
+
+<body>
+<!-- Tillbaka till portföljen (lagt till när appen flyttades in på iskalldrake.github.io) -->
+<a href="../index.html" style="position:fixed;left:12px;bottom:12px;z-index:50;padding:6px 12px;border-radius:99px;font:14px system-ui,sans-serif;text-decoration:none;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2)">← Portfölj</a>
+
+<!-- INTRON. Den här rutan täcker sidan från första stund, så att du aldrig ser
+     sidan "hoppa" medan typsnitten laddas. Koden längst ner fyller den med en
+     liten animation och tar sedan bort den. Klicka eller tryck en tangent för att hoppa över. -->
+<div id="intro" aria-hidden="true"></div>
+
+<main>
+  
+  <!-- TOPPRADEN: titeln till vänster, menyknappen till höger.
+       Knappen visar vad som är valt just nu, t.ex. "✍️ Skriv · 📚 Mina ord". -->
+  <header class="topp">
+    <h1>Danska ord <span class="flagga">🇩🇰</span></h1>
+    <button id="meny-knapp" class="meny-knapp" aria-expanded="false" aria-controls="meny">
+      <span id="meny-etikett">✍️ Skriv · 📚 Mina ord</span> <span class="pil" aria-hidden="true">▾</span>
+    </button>
+
+  <!-- MENYN (ligger i toppraden så att den hamnar precis under menyknappen). Allt som inte behövs medan du övar ligger här: läge, ämne och statistik.
+       Den är gömd (display:none) tills du klickar på menyknappen (se avsnitt 6 i koden). -->
+  <div id="meny" class="meny" role="dialog" aria-label="Meny">
+    <p class="meny-rubrik">Läge</p>
+    <nav class="lagen">
+      <button id="lage-skriv" class="aktiv">✍️ Skriv</button>
+      <button id="lage-survivor">🎯 Survivor</button>
+      <button id="lage-quiz">❓ Quiz</button>
+      <button id="lage-kort">🃏 Flashcards</button>
+      <button id="lage-lista">📖 Ordlista</button>
+    </nav>
+    <p class="meny-rubrik">Öva på</p>
+    <div class="teman" id="teman"></div>
+    <p class="meny-rubrik">Statistik</p>
+    <div class="brickor" id="brickor"></div>
+  </div>
+  </header>
+
+  <!-- MÅLET: "18/20 klarade" och stapeln som visar hur nära nästa 10 ord du är -->
+  <div class="mot-nasta" id="mot-nasta"></div>
+  <p class="meddelande" id="meddelande"></p>   <!-- T.ex. "🔓 10 nya ord upplåsta!" -->
+  <div id="innehall"></div>                     <!-- Själva frågan visas här -->
+</main>
+
+<script src="ord.js"></script>
+<script src="ord-teman.js"></script>
+<script>
+// =====================================================================
+// 0. SPARA OCH HÄMTA
+// =====================================================================
+// localStorage = webbläsarens lilla minne. Det gör att dina framsteg finns
+// kvar nästa gång du öppnar filen. "try/catch" betyder: försök, och om det
+// går fel (t.ex. om minnet är avstängt) – krascha inte.
+function hamta(namn) {
+  try { return localStorage.getItem(namn); } catch (e) { return null; }
+}
+function lagra(namn, varde) {
+  try { localStorage.setItem(namn, varde); } catch (e) {}
+}
+
+// =====================================================================
+// 1. ORDLISTORNA
+// =====================================================================
+// Orden ligger i ord.js och temana i ord-teman.js (raderna <script src=...> ovanför).
+// Säkerhetskoll: om ord.js saknas eller är trasig finns ORD inte. Då visar vi ett
+// tydligt felmeddelande i stället för en tom sida.
+if (typeof ORD === "undefined") {
+  document.body.innerHTML =
+    "<main><h1>Hittar inte orden</h1><p>Filen <b>ord.js</b> måste ligga i samma mapp som " +
+    "danska_ord.html och får inte ha några skrivfel. Öppna F12 &rarr; Console för att se vad som är fel.</p></main>";
+  throw new Error("ord.js saknas eller har ett fel – ORD finns inte");
+}
+// Saknas ord-teman.js fungerar appen ändå, fast utan teman. "teman" blir då en tom lista.
+const teman = typeof TEMAN === "undefined" ? [] : TEMAN;
+
+// =====================================================================
+// 2. REPETITION (lådorna)
+// =====================================================================
+// Varje ord har ett lådnummer från 0 till MAX_LADA (just nu 0–5).
+//   Rätt svar  -> lådan går UPP ett steg (högst MAX_LADA = "kan det")
+//   Fel svar   -> lådan går tillbaka till 0
+// Lådnumret avgör hur ofta ordet dyker upp (se slumpaOrd).
+const MAX_LADA = 5;
+
+// "lador" kommer ihåg lådnumret för varje ord, t.ex. { hus: 2, tak: 0 }
+let lador = {};
+try { lador = JSON.parse(hamta("danska-lador") || "{}"); } catch (e) {}
+
+function spara() { lagra("danska-lador", JSON.stringify(lador)); }
+
+// Ger lådnumret för ett ord. "|| 0" betyder: finns inget sparat, räkna som låda 0.
+function lada(ord) { return lador[ord.da] || 0; }
+
+// Vilket tema är valt? "" = dina vanliga upplåsta ord från ord.js.
+// Annars namnet på temat, t.ex. "Färger". Sparas så att valet finns kvar.
+let valtTema = hamta("danska-tema") || "";
+// Finns inte temat längre (t.ex. om du bytt namn på det)? Gå tillbaka till de vanliga orden.
+if (valtTema && !teman.some(t => t.namn === valtTema)) valtTema = "";
+
+// Listan med ord du övar på just nu.
+//   Inget tema valt -> de upplåsta orden från ord.js
+//   Tema valt       -> alla ord i temat (teman är öppna direkt)
+function aktivLista() {
+  if (!valtTema) return upplastaOrd();
+  return teman.find(t => t.namn === valtTema).ord;
+}
+
+// Väljer nästa ord med "viktad slump".
+function slumpaOrd() {
+  let ovning = aktivLista();
+  // Samma ord ska inte komma två gånger i rad (om det finns fler att välja på)
+  if (ovning.length > 1 && aktuellt) ovning = ovning.filter(o => o.da !== aktuellt.da);
+
+  // Vikt = ((MAX_LADA + 1) - lådan) upphöjt till 2 -> låda 0 ger 36, låda 5 ger 1.
+  // Hög vikt = större chans. Felord kommer alltså tillbaka snabbt.
+  const vikter = ovning.map(o => (MAX_LADA + 1 - lada(o)) ** 2);
+
+  // Tänk dig ett lotterihjul där varje ord har en tårtbit lika stor som sin vikt.
+  let tal = Math.random() * vikter.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < ovning.length; i++) {
+    tal -= vikter[i];
+    if (tal <= 0) return ovning[i];
+  }
+  return ovning[0];
+}
+
+// Anropas varje gång du svarat. "ratt" är true/false.
+// "skrivlage" är sant när svaret kom från Skriv eller Survivor. Bara då räknas
+// "rätt i rad" upp, men ett fel nollställer i alla lägen.
+// Returnerar en text om nya ord låstes upp (annars "").
+function registrera(ord, ratt, skrivlage = false) {
+  lador[ord.da] = ratt ? Math.min(lada(ord) + 1, MAX_LADA) : 0;
+  if (ratt) poang++;
+  spara();
+
+  if (!ratt) framsteg.iRad[ord.da] = 0;
+  else if (skrivlage) framsteg.iRad[ord.da] = (framsteg.iRad[ord.da] || 0) + 1;
+  uppdateraStreak();
+  raknaIdag(ratt);          // skriv upp svaret i dagboken (se 2c)
+  sparaFramsteg();
+  return forsokLasaUpp();
+}
+
+// Jämför två texter på ett snällt sätt: "Hvad hedder du?" och "hvad  hedder du"
+// räknas som lika (små bokstäver, inga . , ! ? och bara ett mellanslag mellan orden).
+// Bokstäverna måste fortfarande vara exakt rätt, æ, ø och å också.
+function stada(text) {
+  return text.toLowerCase().replace(/[.,!?¿¡]/g, "").replace(/\s+/g, " ").trim();
+}
+function lika(a, b) { return stada(a) === stada(b); }
+
+// =====================================================================
+// 2b. UPPLÅSNING (10 nya ord åt gången) OCH DAGSSTREAK
+// =====================================================================
+// Orden i ord.js låses upp i den ordning de står, 10 åt gången. Nästa tiotal
+// låses upp DIREKT när du "klarat" ALLA upplåsta ord.
+// "Klarat" = rätt 3 gånger i rad i Skriv eller Survivor.
+// Teman påverkar inte upplåsningen, de är alltid öppna.
+const NYA_PER_OMGANG = 10;
+const KLARAT_GRANS = 3;
+
+// Dagens datum som text, t.ex. "2026-11-10". forskjut = -1 ger gårdagen.
+function datum(forskjut = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + forskjut);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0");
+}
+
+// Allt detta sparas under namnet "danska-framsteg":
+//   upplasta     = hur många ord (från början av ord.js) som är upplåsta
+//   senastUpplas = dagen då vi senast låste upp nya ord
+//   iRad         = rätt i rad i skrivläget per ord, t.ex. { hus: 2, tak: 3 }
+//   streak       = antal dagar i rad du övat
+//   senastOvad   = dagen då du senast svarade på ett ord
+//   historik     = dagbok: svar och rätt per dag (se 2c)
+let framsteg = null;
+try { framsteg = JSON.parse(hamta("danska-framsteg")); } catch (e) {}
+if (!framsteg) {
+  let redanOvade = 0;
+  ORD.forEach((o, i) => { if (o.da in lador) redanOvade = i + 1; });
+  framsteg = { upplasta: Math.max(NYA_PER_OMGANG, redanOvade), senastUpplas: datum(),
+               iRad: {}, streak: 0, senastOvad: "" };
+}
+// Äldre sparade framsteg har ingen dagbok än. Då börjar vi med en tom.
+framsteg.historik = framsteg.historik || {};
+
+function sparaFramsteg() { lagra("danska-framsteg", JSON.stringify(framsteg)); }
+
+function upplastaOrd() { return ORD.slice(0, Math.min(framsteg.upplasta, ORD.length)); }
+function klarat(ord) { return (framsteg.iRad[ord.da] || 0) >= KLARAT_GRANS; }
+
+// Kollas efter varje svar. Returnerar en text att visa, eller "" om inget hänt.
+function forsokLasaUpp() {
+  const ovning = upplastaOrd();
+  if (ovning.length === ORD.length) return "";
+  if (!ovning.every(klarat)) return "";
+  framsteg.upplasta += NYA_PER_OMGANG;
+  framsteg.senastUpplas = datum();
+  sparaFramsteg();
+  byggTeman();   // uppdatera siffran på knappen "Mina ord"
+  return "  🔓 " + (upplastaOrd().length - ovning.length) + " nya ord upplåsta!";
+}
+
+function uppdateraStreak() {
+  if (framsteg.senastOvad === datum()) return;
+  framsteg.streak = framsteg.senastOvad === datum(-1) ? framsteg.streak + 1 : 1;
+  framsteg.senastOvad = datum();
+}
+function visadStreak() {
+  return framsteg.senastOvad === datum() || framsteg.senastOvad === datum(-1) ? framsteg.streak : 0;
+}
+
+// =====================================================================
+// 2c. DAGBOKEN (svar och rätt per dag)
+// =====================================================================
+// t.ex. { "2026-11-10": { svar: 23, ratt: 19 } }
+function raknaIdag(ratt) {
+  const idag = datum();
+  if (!framsteg.historik[idag]) framsteg.historik[idag] = { svar: 0, ratt: 0 };
+  framsteg.historik[idag].svar++;
+  if (ratt) framsteg.historik[idag].ratt++;
+  // Spara bara de senaste 60 dagarna. Datumtext går att sortera: äldst först.
+  const dagar = Object.keys(framsteg.historik).sort();
+  while (dagar.length > 60) delete framsteg.historik[dagar.shift()];
+}
+function dagbok(dag) { return framsteg.historik[dag] || { svar: 0, ratt: 0 }; }
+function procent(d) { return d.svar ? Math.round(100 * d.ratt / d.svar) : 0; }
+
+// =====================================================================
+// 3. SIDAN
+// =====================================================================
+// INSTÄLLNING: när du svarar RÄTT går appen själv vidare efter så här många
+// millisekunder (1000 = 1 sekund). Sätt 0 om du alltid vill trycka Enter själv.
+// (Vid fel svar, tips eller upplåsning väntar appen alltid på dig.)
+const AUTO_NASTA_MS = 900;
+let autoTimer = null;    // "väckarklockan" för att gå vidare automatiskt
+
+let lage = "skriv";      // "skriv", "survivor", "quiz", "kort" eller "lista"
+let poang = 0;           // poäng under den här sessionen
+let aktuellt = null;     // ordet som visas just nu
+const innehall = document.getElementById("innehall");
+
+// --- SURVIVOR ---
+let serie = 0;           // rätt i rad just nu
+let rekord = 0;          // ditt bästa resultat någonsin
+try { rekord = Number(hamta("danska-rekord")) || 0; } catch (e) {}
+
+// Brickornas värden från förra gången. Ändras ett värde får brickan en liten
+// "puls" (klassen "pulsa"), så att du ser vad som hände. Nyckeln är ikonen.
+let forraBrickor = {};
+let nyaBrickor = {};
+
+// Bygger en bricka, t.ex. bricka("🔥", "3", "dagar i rad"). Siffran blir fet.
+function bricka(ikon, siffra, text) {
+  const s = document.createElement("span");
+  s.className = "bricka";
+  const b = document.createElement("b");
+  b.textContent = siffra;
+  s.append(ikon + " ", b, " " + text);
+  nyaBrickor[ikon] = String(siffra);
+  if (ikon in forraBrickor && forraBrickor[ikon] !== String(siffra)) s.classList.add("pulsa");
+  return s;
+}
+
+// Stapeln mot nästa upplåsning byggs EN gång och uppdateras sedan. Då kan den
+// glida mjukt från den gamla bredden till den nya, i stället för att hoppa.
+const motNasta = document.getElementById("mot-nasta");
+const motNastaText = document.createElement("p");
+motNastaText.className = "mal";
+const skena = document.createElement("div");
+skena.className = "skena";
+const fyllning = document.createElement("div");
+fyllning.className = "fyllning";
+skena.append(fyllning);
+motNasta.append(motNastaText, skena);
+function satStapel(andel) { fyllning.style.width = Math.round(100 * andel) + "%"; }
+
+// Statistiken som brickor + stapeln mot nästa upplåsning
+function uppdateraStats() {
+  const lista = aktivLista();
+  const kan = lista.filter(o => lada(o) >= MAX_LADA).length;
+  const idag = dagbok(datum());
+  const brickor = document.getElementById("brickor");
+  brickor.innerHTML = "";
+  nyaBrickor = {};
+
+  if (lage === "survivor") {
+    brickor.append(bricka("🎯", serie, "i rad"), bricka("🏆", rekord, "rekord"));
+  } else {
+    brickor.append(bricka("⭐", poang, "poäng"));
+  }
+  brickor.append(
+    bricka("✅", kan + "/" + lista.length, valtTema ? "kan i temat" : "kan"),
+    bricka("🔥", visadStreak(), visadStreak() === 1 ? "dag i rad" : "dagar i rad"),
+    bricka("📅", idag.svar, "svar i dag" + (idag.svar ? " · " + procent(idag) + " % rätt" : ""))
+  );
+  forraBrickor = nyaBrickor;
+
+  // MÅLRADEN, t.ex. "18/20 klarade · 2 kvar till nya ord 🔓".
+  // malRad(stor, liten, text) bygger: stor siffra (fet), "/liten", och en förklaring.
+  // I Survivor visas din serie och ditt rekord först.
+  const malRad = (stor, liten, text) => {
+    motNastaText.innerHTML = "";
+    if (lage === "survivor") {
+      const sv = document.createElement("span");
+      sv.className = "mal-survivor";
+      sv.textContent = "🎯 " + serie + " i rad · 🏆 " + rekord;
+      motNastaText.append(sv);
+    }
+    const siffra = document.createElement("span");
+    siffra.className = "mal-siffra";
+    const b = document.createElement("b");
+    b.textContent = stor;
+    siffra.append(b, "/" + liten);
+    const t = document.createElement("span");
+    t.className = "mal-text";
+    t.textContent = text;
+    motNastaText.append(siffra, t);
+  };
+
+  if (valtTema) {
+    // I ett tema: hur många av temats ord har nått sista lådan?
+    malRad(kan, lista.length, "i sista lådan · " + valtTema);
+    satStapel(kan / lista.length);
+    return;
+  }
+  const ovning = upplastaOrd();
+  const klarade = ovning.filter(klarat).length;
+  if (ovning.length === ORD.length) {
+    malRad(klarade, ORD.length, "klarade · alla ord upplåsta 🎉");
+  } else {
+    const kvar = ovning.length - klarade;
+    malRad(klarade, ovning.length, "klarade · " + kvar + " kvar till nya ord 🔓");
+  }
+  satStapel(klarade / ovning.length);
+}
+
+// Lådmätaren under ordet, t.ex. "Låda ■■□□□  ·  Rätt i rad ●●○"
+//   5 rutor = låda 1 till 5. Låda 0 = inga rutor fyllda.
+//   3 prickar = hur nära ordet är "klarat" (3 rätt i rad i Skriv).
+// forraLada (valfri) = lådan FÖRE svaret. Rutan som just fylldes får klassen
+// "ny" och poppar upp lite (se CSS).
+function ladmatare(ord, forraLada = lada(ord)) {
+  const p = document.createElement("p");
+  p.className = "matare";
+  p.append("Låda ");
+  for (let i = 1; i <= MAX_LADA; i++) {
+    const r = document.createElement("span");
+    r.className = "ruta" + (i <= lada(ord) ? " full" : "") + (i > forraLada && i <= lada(ord) ? " ny" : "");
+    p.append(r);
+  }
+  p.append("  ·  Rätt i rad ");
+  const iRad = Math.min(framsteg.iRad[ord.da] || 0, KLARAT_GRANS);
+  for (let i = 0; i < KLARAT_GRANS; i++) {
+    const pr = document.createElement("span");
+    pr.className = "prick" + (i < iRad ? " full" : "");
+    pr.textContent = "●";
+    p.append(pr);
+  }
+  if (klarat(ord)) p.append("  klarat ✓");
+  return p;
+}
+
+// Bygger ordkortet. Meningar (långa, med mellanslag) får lite mindre text.
+function ordkort(text) {
+  const kort = document.createElement("div");
+  kort.className = "card";
+  if (text.length > 12 && text.includes(" ")) kort.classList.add("mening");
+  kort.textContent = text;
+  return kort;
+}
+
+// Väljer ett nytt ord och visar det i rätt läge. Anropas efter varje fråga.
+function nastaFraga() {
+  clearTimeout(autoTimer);   // stoppa en automatisk "nästa" som kanske väntar
+  if (aktuellt) document.getElementById("meddelande").textContent = "";
+  aktuellt = slumpaOrd();
+  uppdateraStats();
+  if (lage === "lista") visaOrdlista();
+  else if (lage === "kort") visaKort();
+  else if (lage === "quiz") visaQuiz();
+  else if (lage === "survivor") visaSkriv(true);
+  else visaSkriv(false);
+  tonaIn(innehall);
+}
+
+// Får det nya innehållet att glida in mjukt. Klassen "in" startar en
+// CSS-animation. Vi tar bort klassen och lägger till den igen för att
+// animationen ska spelas om varje gång. "offsetWidth" tvingar webbläsaren
+// att märka att klassen var borta en kort stund.
+function tonaIn(element) {
+  element.classList.remove("in");
+  void element.offsetWidth;
+  element.classList.add("in");
+}
+
+// ---------------------------------------------------------------------
+// BOKSTAVSJÄMFÖRELSE (när du skrivit fel)
+// ---------------------------------------------------------------------
+// Räknar ut hur man går från det du skrev till det rätta ordet med så få
+// ändringar som möjligt ("Levenshtein-avstånd", används i stavningskontroller).
+// Svaret blir en lista med steg:
+//   { typ:"lika",   du:"h", ratt:"h" }  samma bokstav
+//   { typ:"byt",    du:"u", ratt:"ø" }  fel bokstav
+//   { typ:"extra",  du:"e" }            en bokstav för mycket
+//   { typ:"saknas", ratt:"d" }          en bokstav som fattades
+function jamforBokstaver(du, ratt) {
+  const a = [...du], b = [...ratt];    // [...text] delar upp texten i bokstäver
+  // t[i][j] = minsta antal ändringar för att göra a:s första i bokstäver
+  // till b:s första j bokstäver. Vi fyller tabellen rad för rad.
+  const t = [];
+  for (let i = 0; i <= a.length; i++) {
+    t.push([]);
+    for (let j = 0; j <= b.length; j++) {
+      if (i === 0) t[i][j] = j;
+      else if (j === 0) t[i][j] = i;
+      else t[i][j] = Math.min(
+        t[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),   // samma eller byt
+        t[i - 1][j] + 1,                                     // extra bokstav
+        t[i][j - 1] + 1);                                    // saknad bokstav
+    }
+  }
+  // Gå baklänges genom tabellen för att se vilka steg som valdes.
+  const steg = [];
+  let i = a.length, j = b.length;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && t[i][j] === t[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) {
+      steg.unshift({ typ: a[i - 1] === b[j - 1] ? "lika" : "byt", du: a[i - 1], ratt: b[j - 1] });
+      i--; j--;
+    } else if (i > 0 && t[i][j] === t[i - 1][j] + 1) {
+      steg.unshift({ typ: "extra", du: a[i - 1] });
+      i--;
+    } else {
+      steg.unshift({ typ: "saknas", ratt: b[j - 1] });
+      j--;
+    }
+  }
+  return { steg, avstand: t[a.length][b.length] };
+}
+
+// Bygger två rader: "Du skrev:" (fel bokstäver röda) och "Rätt:" (missade bokstäver gröna).
+function visaSkillnad(du, ratt) {
+  const { steg, avstand } = jamforBokstaver(du, ratt);
+  const ruta = document.createElement("div");
+  ruta.className = "skillnad";
+
+  const duRad = document.createElement("p");
+  duRad.className = "jamfor";
+  const rattRad = document.createElement("p");
+  rattRad.className = "jamfor";
+  const etikett = text => { const s = document.createElement("span"); s.className = "etikett"; s.textContent = text; return s; };
+  duRad.append(etikett("Du skrev:"));
+  rattRad.append(etikett("Rätt:"));
+
+  const bokstav = (rad, tecken, klass) => {
+    const s = document.createElement("span");
+    if (klass) s.className = klass;
+    s.textContent = tecken;
+    rad.append(s);
+  };
+  steg.forEach(s => {
+    if (s.typ === "lika")   { bokstav(duRad, s.du, ""); bokstav(rattRad, s.ratt, ""); }
+    if (s.typ === "byt")    { bokstav(duRad, s.du, "fel-bokstav"); bokstav(rattRad, s.ratt, "ratt-bokstav"); }
+    if (s.typ === "extra")  { bokstav(duRad, s.du, "fel-bokstav"); }
+    if (s.typ === "saknas") { bokstav(duRad, "_", "lucka"); bokstav(rattRad, s.ratt, "ratt-bokstav"); }
+  });
+
+  // Ledtrådar: tips om æ, ø och å, eller "Nästan!"
+  const ledtrad = document.createElement("p");
+  ledtrad.className = "ledtrad";
+  const fel = steg.filter(s => s.typ !== "lika");
+  const specialtecken = "æøåäöao";
+  const baraSpecial = fel.length > 0 && fel.every(s =>
+    specialtecken.includes(s.du || "") && specialtecken.includes(s.ratt || ""));
+  if (baraSpecial) ledtrad.textContent = "Tips: kolla æ, ø och å. Resten var rätt!";
+  else if (avstand === 1) ledtrad.textContent = "Nästan! Bara en bokstav fel.";
+  else if (avstand === 2) ledtrad.textContent = "Nära! Två bokstäver fel.";
+
+  ruta.append(duRad, rattRad, ledtrad);
+  return ruta;
+}
+
+// Liten "studs" på kortet: klassen läggs till, och tas bort när animationen är klar.
+// (Hur studsen ser ut bestäms i <style>, under .studs-ratt och .studs-fel.)
+function studsa(element, ratt) {
+  element.classList.add(ratt ? "studs-ratt" : "studs-fel");
+  element.addEventListener("animationend", () => element.classList.remove("studs-ratt", "studs-fel"), { once: true });
+}
+
+// ---------------------------------------------------------------------
+// LÄGE: SKRIV – du ser det svenska ordet och skriver det danska
+// Samma funktion används för SURVIVOR (survivor = true: ett fel och omgången är slut).
+// ---------------------------------------------------------------------
+function visaSkriv(survivor) {
+  innehall.innerHTML = "";
+
+  const fraga = ordkort(aktuellt.sv);
+  fraga.style.cursor = "default";
+
+  // Lådmätaren under kortet. Vi byter ut den efter svaret så du ser lådan röra sig.
+  let matare = ladmatare(aktuellt);
+
+  const falt = document.createElement("input");
+  falt.type = "text";
+  falt.autocomplete = "off";
+  falt.spellcheck = false;     // inga rödstreck under danska ord
+  falt.placeholder = "Skriv på danska…";
+
+  // Knappar för æ, ø, å (svenska tangentbord saknar æ och ø)
+  const tecken = document.createElement("div");
+  tecken.className = "tecken";
+  ["æ", "ø", "å"].forEach(t =>
+    tecken.append(knapp(t, () => { falt.value += t; falt.focus(); })));
+
+  const svar = document.createElement("div");
+  svar.className = "svar";
+  const skillnad = document.createElement("div");   // här visas bokstavsjämförelsen
+
+  let klar = false;   // har du redan svarat på det här ordet?
+  let slut = false;   // är Survivor-omgången över?
+
+  // Körs när du trycker Enter (eller på knappen).
+  function kontrollera() {
+    if (klar) {                 // redan svarat? Då betyder Enter "gå vidare".
+      if (slut) serie = 0;
+      nastaFraga();
+      return;
+    }
+    const skrivet = falt.value.trim();
+    if (!skrivet) return;       // tomt fält? gör ingenting
+    klar = true;
+
+    // lika() i stället för === så att punkt, komma, ? och stora bokstäver inte spelar roll
+    const ratt = lika(skrivet, aktuellt.da);
+    const forraLada = lada(aktuellt);          // lådan före svaret (för lådmätaren)
+    const upplast = registrera(aktuellt, ratt, true);
+
+    if (survivor) {
+      if (ratt) {
+        serie++;
+        if (serie > rekord) {
+          rekord = serie;
+          lagra("danska-rekord", rekord);
+        }
+      } else {
+        slut = true;
+      }
+    }
+    uppdateraStats();
+
+    const nyMatare = ladmatare(aktuellt, forraLada);
+    matare.replaceWith(nyMatare);
+    matare = nyMatare;
+
+    svar.textContent = ratt ? "✓ Flot!" : "✗ Inte riktigt";
+    if (!ratt) skillnad.append(visaSkillnad(stada(skrivet), stada(aktuellt.da)));
+    if (aktuellt.tips) svar.textContent += "  (" + aktuellt.tips + ")";
+    svar.textContent += upplast;
+    if (slut) {
+      svar.textContent += "  –  GAME OVER! Du fick " + serie + " rätt i rad."
+        + (serie > 0 && serie === rekord ? " 🏆 Nytt rekord!" : "");
+    }
+    falt.classList.add(ratt ? "ratt" : "fel");
+    studsa(fraga, ratt);
+    // readOnly = fältet kan inte ändras men behåller markören, så nästa Enter fungerar.
+    falt.readOnly = true;
+    nasta.textContent = slut ? "Spela igen (Enter)" : "Nästa (Enter)";
+
+    // Rätt, och inget extra att läsa? Gå vidare av dig själv efter en kort stund.
+    // Knappen får en liten stapel som fylls under tiden (klassen "vantar").
+    if (ratt && !aktuellt.tips && !upplast && AUTO_NASTA_MS > 0) {
+      nasta.classList.add("vantar");
+      nasta.style.setProperty("--auto", AUTO_NASTA_MS + "ms");
+      autoTimer = setTimeout(nastaFraga, AUTO_NASTA_MS);
+    }
+  }
+
+  const nasta = knapp("Kolla (Enter)", kontrollera);
+  nasta.classList.add("primar");
+  falt.onkeydown = e => { if (e.key === "Enter") kontrollera(); };
+
+  innehall.append(fraga, matare, falt, tecken, svar, skillnad, nasta);
+  falt.focus();
+}
+
+// ---------------------------------------------------------------------
+// LÄGE: FLASHCARDS – klicka på kortet för att vända det
+// ---------------------------------------------------------------------
+function visaKort() {
+  innehall.innerHTML = "";
+  const kort = ordkort(aktuellt.da);
+  kort.classList.add("vandbart");
+  let vandt = false;
+  // Vid klick "vänds" kortet: det krymper till en tunn linje (scaleX(0)),
+  // texten byts, och sedan växer det tillbaka. Ser ut som ett kort som vänds.
+  kort.onclick = () => {
+    vandt = !vandt;
+    kort.style.transform = "scaleX(0)";
+    setTimeout(() => {
+      kort.textContent = vandt ? aktuellt.sv : aktuellt.da;
+      kort.classList.toggle("vant", vandt);
+      kort.style.transform = "";
+    }, 140);   // 140 ms = samma tid som animationen i CSS
+  };
+  const kan = knapp("Jag kunde det ✓", () => { registrera(aktuellt, true); nastaFraga(); });
+  const kanEj = knapp("Kunde inte ✗", () => { registrera(aktuellt, false); nastaFraga(); });
+  kan.classList.add("primar");
+  const rad = document.createElement("div");
+  rad.append(kan, kanEj);
+  innehall.append(kort, ladmatare(aktuellt), rad);
+  const tips = document.createElement("p");
+  tips.className = "info";
+  tips.textContent = "Klicka på kortet för att vända det.";
+  innehall.append(tips);
+}
+
+// ---------------------------------------------------------------------
+// LÄGE: QUIZ – välj rätt svenska ord bland fyra alternativ
+// ---------------------------------------------------------------------
+function visaQuiz() {
+  innehall.innerHTML = "";
+  const fraga = ordkort(aktuellt.da);
+  fraga.style.cursor = "default";
+  innehall.append(fraga, ladmatare(aktuellt));
+
+  // Fel svar tas från samma lista som du övar på (t.ex. bara färger), om den har
+  // minst 4 ord. Ord med samma svenska text som rätt svar hoppas över.
+  const kalla = aktivLista().length >= 4 ? aktivLista() : ORD;
+  const fel = kalla.filter(o => o.sv !== aktuellt.sv)
+                   .sort(() => Math.random() - 0.5).slice(0, 3);
+  const alternativ = [aktuellt, ...fel].sort(() => Math.random() - 0.5);
+
+  let besvarad = false;     // förhindrar dubbelklick
+  alternativ.forEach(alt => {
+    const b = knapp(alt.sv, () => {
+      if (besvarad) return;
+      besvarad = true;
+      const ratt = alt === aktuellt;
+      b.classList.add(ratt ? "ratt" : "fel");
+      if (!ratt) [...innehall.querySelectorAll(".val")]
+        .find(x => x.textContent === aktuellt.sv).classList.add("ratt");
+      registrera(aktuellt, ratt);
+      uppdateraStats();
+      studsa(fraga, ratt);
+      setTimeout(nastaFraga, ratt ? 700 : 1500);   // vänta lite så du hinner se färgen
+    });
+    b.classList.add("val");
+    innehall.append(b);
+  });
+}
+
+// ---------------------------------------------------------------------
+// LÄGE: ORDLISTA – alla ord, din status och veckan som diagram
+// ---------------------------------------------------------------------
+function visaOrdlista() {
+  innehall.innerHTML = "";
+  const ovning = upplastaOrd();
+
+  const sammanfattning = document.createElement("p");
+  sammanfattning.className = "sammanfattning";
+  sammanfattning.innerHTML =
+    "Upplåsta <b>" + ovning.length + "</b> av " + ORD.length +
+    "  ·  Klarade <b>" + ovning.filter(klarat).length + "</b>" +
+    "  ·  I sista lådan <b>" + ORD.filter(o => lada(o) >= MAX_LADA).length + "</b>";
+
+  // VECKODIAGRAMMET: en stapel per dag, i dag längst till höger.
+  // Hela stapeln = antal svar (rosa = fel), den gröna delen = antal rätt.
+  const vecka = document.createElement("div");
+  vecka.className = "vecka";
+  const veckodagar = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];   // getDay(): 0 = söndag
+  const dagarna = [];
+  for (let i = -6; i <= 0; i++) dagarna.push(datum(i));
+  const mest = Math.max(1, ...dagarna.map(d => dagbok(d).svar));
+  dagarna.forEach((d, nr) => {
+    const info = dagbok(d);
+    const kolumn = document.createElement("div");
+    kolumn.className = "dag";
+    kolumn.title = d + ": " + info.svar + " svar, " + info.ratt + " rätt";   // syns när musen är över
+    const antal = document.createElement("span");
+    antal.textContent = info.svar || "";
+    const pelare = document.createElement("div");
+    pelare.className = "pelare";
+    pelare.style.height = (70 * info.svar / mest) + "%";
+    const gron = document.createElement("div");
+    gron.className = "pelare-ratt";
+    gron.style.height = info.svar ? (100 * info.ratt / info.svar) + "%" : "0";
+    pelare.append(gron);
+    const namn = document.createElement("span");
+    const dag = new Date(); dag.setDate(dag.getDate() + nr - 6);
+    namn.textContent = nr === 6 ? "i dag" : veckodagar[dag.getDay()];
+    kolumn.append(antal, pelare, namn);
+    vecka.append(kolumn);
+  });
+
+  // Sök och sortering
+  const sokRad = document.createElement("div");
+  sokRad.className = "lista-sok";
+  const sok = document.createElement("input");
+  sok.placeholder = "Sök ord (danska eller svenska)…";
+  const sortering = document.createElement("select");
+  [["ordning", "I ordning"], ["svarast", "Svårast först"], ["bast", "Bäst först"]].forEach(([v, t]) => {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = t;
+    sortering.append(o);
+  });
+  sokRad.append(sok, sortering);
+
+  // Tabellen. Är ett tema valt visar vi temats ord, annars alla ord i ord.js.
+  const tabell = document.createElement("table");
+  tabell.innerHTML = "<thead><tr><th>#</th><th>Danska</th><th>Svenska</th><th>Låda</th><th>I rad</th></tr></thead>";
+  const kropp = document.createElement("tbody");
+  tabell.append(kropp);
+
+  function byggRader() {
+    kropp.innerHTML = "";
+    const sokord = sok.value.trim().toLowerCase();
+    const kallLista = valtTema ? aktivLista() : ORD;
+    // { ord, nr, last } – nr = plats i listan, last = sant om ordet inte är upplåst än
+    let rader = kallLista.map((ord, i) => ({ ord, nr: i + 1, last: !valtTema && i >= ovning.length }));
+    if (sokord) rader = rader.filter(r =>
+      r.ord.da.toLowerCase().includes(sokord) || r.ord.sv.toLowerCase().includes(sokord));
+    // Betyg per ord: låda gånger 10 plus rätt i rad. Högre = bättre. Låsta ord alltid sist.
+    const betyg = r => lada(r.ord) * 10 + (framsteg.iRad[r.ord.da] || 0);
+    if (sortering.value === "svarast") rader.sort((x, y) => (x.last - y.last) || (betyg(x) - betyg(y)) || (x.nr - y.nr));
+    if (sortering.value === "bast")    rader.sort((x, y) => (x.last - y.last) || (betyg(y) - betyg(x)) || (x.nr - y.nr));
+
+    rader.forEach(r => {
+      const tr = document.createElement("tr");
+      if (r.last) tr.className = "last";
+      const cell = text => { const td = document.createElement("td"); td.textContent = text; tr.append(td); return td; };
+      cell(r.nr);
+      cell((r.last ? "🔒 " : "") + r.ord.da);
+      cell(r.ord.sv);
+      const ladCell = cell("");
+      for (let i = 1; i <= MAX_LADA; i++) {
+        const ruta = document.createElement("span");
+        ruta.className = "ruta" + (!r.last && i <= lada(r.ord) ? " full" : "");
+        ladCell.append(ruta);
+      }
+      cell(r.last ? "" : klarat(r.ord) ? "✓" : (framsteg.iRad[r.ord.da] || 0) + "/" + KLARAT_GRANS);
+      kropp.append(tr);
+    });
+    if (rader.length === 0) {
+      kropp.innerHTML = "<tr><td colspan='5' style='text-align:center'>Inga ord hittades.</td></tr>";
+    }
+  }
+  sok.oninput = byggRader;          // körs varje gång du skriver en bokstav
+  sortering.onchange = byggRader;   // körs när du väljer en annan sortering
+
+  const rubrik = document.createElement("p");
+  rubrik.className = "sammanfattning";
+  rubrik.textContent = "Senaste 7 dagarna (grönt = rätt)";
+
+  innehall.append(sammanfattning, rubrik, vecka, sokRad, tabell);
+  byggRader();
+}
+
+// =====================================================================
+// 4. HJÄLPFUNKTIONER OCH START
+// =====================================================================
+
+// Bygger en knapp: knapp("Text", vadSomHändsVidKlick)
+function knapp(text, vidKlick) {
+  const b = document.createElement("button");
+  b.textContent = text;
+  b.onclick = vidKlick;
+  return b;
+}
+
+// Alla lägen. Lägger du till ett läge: skriv det här + en knapp med id="lage-NAMN".
+const LAGEN = ["skriv", "survivor", "quiz", "kort", "lista"];
+function bytLage(nytt) {
+  lage = nytt;
+  serie = 0;     // byter du läge börjar en ny Survivor-omgång från noll
+  LAGEN.forEach(l => document.getElementById("lage-" + l).classList.toggle("aktiv", nytt === l));
+  uppdateraMenyEtikett();
+  stangMeny();
+  nastaFraga();
+}
+LAGEN.forEach(l => { document.getElementById("lage-" + l).onclick = () => bytLage(l); });
+
+// Bygger temaknapparna. Första knappen är dina vanliga ord, sedan en per tema.
+function byggTeman() {
+  const rad = document.getElementById("teman");
+  rad.innerHTML = "";
+  const val = [{ namn: "", text: "📚 Mina ord (" + upplastaOrd().length + ")" },
+               ...teman.map(t => ({ namn: t.namn, text: t.ikon + " " + t.namn + " (" + t.ord.length + ")" }))];
+  val.forEach(v => {
+    const b = knapp(v.text, () => {
+      valtTema = v.namn;
+      lagra("danska-tema", valtTema);
+      serie = 0;          // nytt tema = ny Survivor-omgång
+      aktuellt = null;
+      byggTeman();
+      uppdateraMenyEtikett();
+      stangMeny();
+      nastaFraga();
+    });
+    if (v.namn === valtTema) b.classList.add("aktiv");
+    rad.append(b);
+  });
+}
+
+// =====================================================================
+// 5. INTRON
+// =====================================================================
+// Välj intro: "ljus" (ett stearinljus tänds), "flagga" (danska flaggan ritas)
+// eller "hej" (en hälsning skrivs ut). Tom text "" = ingen intro alls.
+const INTRO = "ljus";
+// true = intron visas bara första gången per flik (inte när du laddar om sidan).
+const INTRO_EN_GANG_PER_FLIK = false;
+
+// Dansk hälsning efter tid på dygnet. Du lär dig lite danska redan i intron!
+function halsning() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 10)  return ["Godmorgen!", "god morgon"];
+  if (h >= 10 && h < 17) return ["Goddag!", "god dag"];
+  if (h >= 17 && h < 23) return ["Godaften!", "god kväll"];
+  return ["Godnat!", "god natt"];
+}
+
+// En kort rad om hur det går, t.ex. "🔥 5 dagar i rad · 40 ord upplåsta"
+function introStatus() {
+  const st = visadStreak();
+  const delar = [];
+  if (st > 0) delar.push("🔥 " + st + (st === 1 ? " dag" : " dagar") + " i rad");
+  delar.push(upplastaOrd().length + " ord upplåsta");
+  delar.push(upplastaOrd().filter(klarat).length + " klarade");
+  return delar.join("  ·  ");
+}
+
+// Bygger intron som HTML-text. Varje stil har sina egna delar; texterna är gemensamma.
+function byggIntro(stil) {
+  const [hej, oversatt] = halsning();
+  const texter = '<p class="intro-titel">Danska ord</p>' +
+                 '<p class="intro-text">' + hej + ' <span>(' + oversatt + ')</span></p>' +
+                 '<p class="intro-status">' + introStatus() + '</p>';
+  if (stil === "ljus") {
+    return '<div class="scen"><div class="ljus"><span class="sken"></span><span class="laga"></span>' +
+           '<span class="veke"></span><span class="stearin"></span></div>' + texter + '</div>';
+  }
+  if (stil === "flagga") {
+    return '<div class="scen"><div class="dk-flagga"><span class="kors-lodratt"></span>' +
+           '<span class="kors-vagratt"></span></div>' + texter + '</div>';
+  }
+  // "hej": titeln skrivs ut bokstav för bokstav (se skrivUt nedan)
+  return '<div class="scen"><p class="intro-titel"><span class="skrivtext"></span><span class="markor"></span></p>' +
+         '<p class="intro-text">' + hej + ' <span>(' + oversatt + ')</span></p>' +
+         '<p class="intro-status">' + introStatus() + '</p></div>';
+}
+
+// Skriver ut en text bokstav för bokstav i ett element, som en skrivmaskin.
+function skrivUt(element, text, msPerBokstav) {
+  let i = 0;
+  const klocka = setInterval(() => {
+    i++;
+    element.textContent = text.slice(0, i);
+    if (i >= text.length) clearInterval(klocka);
+  }, msPerBokstav);
+}
+
+let introSlut = false;
+function avslutaIntro() {
+  if (introSlut) return;          // redan avslutad? gör inget mer
+  introSlut = true;
+  const ruta = document.getElementById("intro");
+  document.body.classList.add("startad");   // märker att sidan har startat
+  if (ruta) {
+    // Intron tonas bort med JavaScript ("Web Animations"): opacitet 1 -> 0 på 0,6 s.
+    // fill: "forwards" = stanna kvar på 0 när toningen är klar.
+    // (Förut gjordes toningen i CSS med opacity + visibility. Då visade Firefox
+    //  hela intron igen i en enda bildruta precis när toningen tog slut – hacket.)
+    ruta.style.animation = "none";          // stäng av nödstoppet i CSS, vi sköter det nu
+    ruta.style.pointerEvents = "none";      // klick går rakt igenom till sidan direkt
+    const tona = ruta.animate([{ opacity: 1 }, { opacity: 0 }],
+                              { duration: 600, easing: "ease", fill: "forwards" });
+    tona.onfinish = () => {
+      ruta.style.display = "none";          // göm helt...
+      requestAnimationFrame(() => ruta.remove());   // ...och ta bort vid nästa bildruta
+    };
+  }
+  const falt = innehall.querySelector("input");
+  if (falt) falt.focus();
+}
+
+function korIntro() {
+  const ruta = document.getElementById("intro");
+  let redanVisad = false;
+  try { redanVisad = sessionStorage.getItem("danska-intro") === "ja"; } catch (e) {}
+  if (!INTRO || !ruta || (INTRO_EN_GANG_PER_FLIK && redanVisad)) {
+    if (ruta) ruta.remove();
+    document.body.classList.add("startad");
+    return;
+  }
+  try { sessionStorage.setItem("danska-intro", "ja"); } catch (e) {}
+
+  // Vill datorn ha mindre rörelse? Då blir intron bara en kort toning.
+  const lugn = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  ruta.dataset.stil = INTRO;
+  ruta.innerHTML = byggIntro(INTRO);
+  if (INTRO === "hej" && !lugn) {
+    setTimeout(() => skrivUt(ruta.querySelector(".skrivtext"), "Danska ord", 85), 250);
+  } else if (INTRO === "hej") {
+    ruta.querySelector(".skrivtext").textContent = "Danska ord";
+  }
+
+  // Intron slutar när BÅDA är klara: tiden har gått OCH typsnitten har laddats
+  // (men vi väntar aldrig mer än 3 sekunder extra på typsnitten).
+  // Ett "Promise" är ett löfte om att något blir klart senare.
+  const langd = lugn ? 500 : ({ ljus: 2300, flagga: 2200, hej: 2500 }[INTRO] || 2000);
+  const tiden = new Promise(klar => setTimeout(klar, langd));
+  // Vi ber uttryckligen om ALLA varianter av typsnitten som sidan använder (fet,
+  // kursiv osv.). Annars kan Firefox ladda någon av dem först EFTER intron, och då
+  // byts texten plötsligt ut – det ser ut som ett litet hack.
+  const varianter = ["600 1em Fraunces", "500 1em Fraunces", "italic 400 1em Fraunces",
+                     "400 1em Inter", "600 1em Inter", "700 1em Inter"];
+  const typsnitt = document.fonts
+    ? Promise.all(varianter.map(v => document.fonts.load(v).catch(() => null))).then(() => document.fonts.ready)
+    : Promise.resolve();
+  const maxVanta = new Promise(klar => setTimeout(klar, langd + 3000));
+  Promise.all([tiden, Promise.race([typsnitt, maxVanta])]).then(avslutaIntro);
+
+  // Klick eller tangent = hoppa över intron
+  ruta.addEventListener("click", avslutaIntro);
+  document.addEventListener("keydown", avslutaIntro, { once: true });
+}
+
+// =====================================================================
+// 6. MENYN (läge, öva på och statistik)
+// =====================================================================
+// Menyn öppnas och stängs med en liten animation. Vi använder JavaScript
+// ("element.animate") i stället för CSS-övergångar, eftersom Firefox annars
+// kan blinka till när något göms (samma problem som vi hade med intron).
+const meny = document.getElementById("meny");
+const menyKnapp = document.getElementById("meny-knapp");
+let menyOppen = false;
+let stangAnimation = null;   // stängningsanimationen, om den pågår just nu
+
+const LAGESNAMN = { skriv: "✍️ Skriv", survivor: "🎯 Survivor", quiz: "❓ Quiz",
+                    kort: "🃏 Flashcards", lista: "📖 Ordlista" };
+
+// Texten på menyknappen, t.ex. "✍️ Skriv · 🎨 Färger"
+function uppdateraMenyEtikett() {
+  const tema = teman.find(t => t.namn === valtTema);
+  document.getElementById("meny-etikett").textContent =
+    LAGESNAMN[lage] + " · " + (tema ? tema.ikon + " " + tema.namn : "📚 Mina ord");
+}
+
+function oppnaMeny() {
+  if (menyOppen) return;
+  menyOppen = true;
+  menyKnapp.setAttribute("aria-expanded", "true");
+  // Håller menyn fortfarande på att stängas? Avbryt det, annars göms den
+  // när stängningen blir klar – mitt i att vi öppnar den igen.
+  if (stangAnimation) { stangAnimation.onfinish = null; stangAnimation.cancel(); stangAnimation = null; }
+  meny.style.display = "block";
+  // Glider ner lite och tonar fram: från osynlig och 8 px upp, till synlig på plats.
+  meny.animate([{ opacity: 0, transform: "translateY(-8px) scale(.98)" },
+                { opacity: 1, transform: "none" }],
+               { duration: 180, easing: "ease-out" });
+}
+
+function stangMeny() {
+  if (!menyOppen) return;
+  menyOppen = false;
+  menyKnapp.setAttribute("aria-expanded", "false");
+  const anim = stangAnimation = meny.animate([{ opacity: 1, transform: "none" },
+                             { opacity: 0, transform: "translateY(-8px) scale(.98)" }],
+                            { duration: 140, easing: "ease-in", fill: "forwards" });
+  anim.onfinish = () => {
+    meny.style.display = "none";   // göm helt när den är osynlig...
+    anim.cancel();                 // ...och släpp "fill", så den kan visas igen nästa gång
+    stangAnimation = null;
+  };
+  // Tillbaka till skrivfältet, så du kan fortsätta skriva direkt
+  const falt = innehall.querySelector("input:not([readonly])");
+  if (falt) falt.focus({ preventScroll: true });
+}
+
+// Klick på knappen: öppna om stängd, stäng om öppen
+menyKnapp.onclick = e => { e.stopPropagation(); menyOppen ? stangMeny() : oppnaMeny(); };
+// Klick någon annanstans på sidan stänger menyn
+document.addEventListener("click", e => { if (menyOppen && !meny.contains(e.target)) stangMeny(); });
+// Esc stänger menyn
+document.addEventListener("keydown", e => { if (e.key === "Escape") stangMeny(); });
+
+// STARTSKOTT: har du redan klarat alla upplåsta ord låses nästa omgång upp direkt.
+const startUpplast = forsokLasaUpp();
+document.getElementById("meddelande").textContent = startUpplast.trim();
+byggTeman();
+uppdateraMenyEtikett();
+nastaFraga();
+korIntro();
+</script>
+</body>
+</html>
