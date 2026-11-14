@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Reglerna för databasen. Klistra in hela den här texten i Firebase:
+// Firestore Database -> fliken Rules -> ersätt allt -> Publish.
+//
+// Allt som inte står här är FÖRBJUDET. Den enda tillåtna platsen är
+// framsteg/<användar-id>, och bara för den som är inloggad med just det id:t.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /framsteg/{uid} {
+      // Läsa och radera: bara du, ditt eget dokument
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+
+      // Skriva: bara du, och bara fälten paket (text, högst 500 000 tecken) och sparad (tid)
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['paket', 'sparad'])
+        && request.resource.data.paket is string
+        && request.resource.data.paket.size() < 500000
+        && request.resource.data.sparad is timestamp;
+    }
+  }
+}

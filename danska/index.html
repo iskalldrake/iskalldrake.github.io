@@ -11,8 +11,12 @@
   Datorn ignorerar dem, de är bara till för dig.
 
   Filer som hör ihop med den här:
-    ord.js        = de 100 orden som låses upp 10 åt gången
+    ord.js        = de 1000 orden som låses upp 10 åt gången
     ord-teman.js  = teman (siffror, färger, meningar ...) som är öppna direkt
+    firebase-installning.js = adressen till molnet (för det frivilliga kontot)
+
+  Det här är den PUBLIKA versionen på iskalldrake.github.io/danska.
+  Framstegen sparas i webbläsaren, och den som vill kan logga in och spara i molnet.
 -->
 <html lang="sv">
 <head>
@@ -277,6 +281,52 @@
   .mot-nasta .skena { height:10px; max-width:440px; border-radius:99px; }
   .mot-nasta .fyllning { border-radius:99px; }
 
+  /* ---------- TIDSPRESS: klockan som krymper ---------- */
+  /* En grå "skena" med en färgad stapel som krymper från 100 % till 0 %.
+     Själva krympningen sköts i koden (element.animate), se visaSkriv. */
+  .tidskena { height:8px; background:var(--yta); border:1px solid var(--kant); border-radius:99px;
+              overflow:hidden; margin:12px auto 0; max-width:440px; }
+  .tidstapel { height:100%; width:100%; border-radius:99px; background:var(--accent); }
+  /* Knapparna för att välja 5, 8 eller 12 sekunder */
+  .tidval { margin:0 0 10px; }
+  .tidval button { padding:4px 12px; font-size:.85rem; border-radius:999px; margin:0 2px; }
+  .tidval button.aktiv { background:var(--accent); color:var(--pa-accent); }
+
+  /* ---------- SÄKERHETSKOPIA i menyn ---------- */
+  .kopia { display:flex; flex-wrap:wrap; gap:6px; }
+  .kopia button { margin:0; font-size:.88rem; padding:7px 12px; }
+  .kopia-info { color:var(--dov-text); font-size:.8rem; margin:6px 0 0; }
+  .kopia-info:empty { display:none; }
+
+  /* ---------- SYNK mellan datorerna ---------- */
+  .synk-steg { background:var(--bakgrund); border:1px solid var(--kant); border-radius:10px;
+               padding:10px 12px; margin:8px 0 0; font-size:.85rem; }
+  .synk-steg ol { margin:6px 0 8px; padding-left:20px; }
+  .synk-steg li { margin:3px 0; }
+  .synk-steg a { color:var(--accent); }
+  .synk-steg input { font-size:.9rem; width:100%; margin:4px 0; padding:7px; text-align:left; }
+  .synk-steg button { font-size:.85rem; padding:6px 12px; margin:2px 4px 0 0; }
+  /* hidden = gömd. Behövs eftersom .kopia har display:flex, som annars vinner över hidden. */
+  .kopia[hidden], .synk-steg[hidden] { display:none; }
+
+  /* ---------- FIRANDET när du klarar en nivå ---------- */
+  /* En ruta över hela sidan, som intron. Ljuset (.ljus) har samma utseende som i intron. */
+  #fest { position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center;
+          padding:16px; background:radial-gradient(600px 460px at 50% 40%, #3a2c1e, #1d1815 70%); }
+  #fest .scen { max-width:520px; }
+  .fest-titel { font-family:var(--rubrik-font); font-size:2.4rem; font-weight:600; margin:16px 0 0; animation-delay:.6s !important; }
+  .fest-text  { font-family:var(--rubrik-font); font-style:italic; color:var(--accent); font-size:1.2rem; margin:4px 0 14px; animation-delay:.8s !important; }
+  .fest-ord   { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:0 0 18px; animation-delay:1s !important; }
+  .fest-ord span { background:var(--yta); border:1px solid var(--kant); border-radius:999px; padding:4px 11px; font-size:.88rem; }
+  .fest-ord b { color:var(--text); font-weight:600; }
+  .fest-ord i { color:var(--dov-text); font-style:normal; }
+  #fest .primar { animation-delay:1.2s !important; }
+  /* Gnistor som flyger upp från lågan */
+  .gnista { position:absolute; left:50%; bottom:100px; width:5px; height:5px; border-radius:50%;
+            background:#ffd27a; box-shadow:0 0 8px #ffb347; opacity:0; animation:gnista 1.6s ease-out infinite; }
+  @keyframes gnista { 0% { opacity:0; transform:translate(0,0); } 15% { opacity:1; }
+                      100% { opacity:0; transform:translate(var(--x), -120px); } }
+
   /* ============================================================
      INTRON (se avsnitt 5 i koden). Rutan täcker hela fönstret.
      ============================================================ */
@@ -342,9 +392,6 @@
 </head>
 
 <body>
-<!-- Tillbaka till portföljen (lagt till när appen flyttades in på iskalldrake.github.io) -->
-<a href="../index.html" style="position:fixed;left:12px;bottom:12px;z-index:50;padding:6px 12px;border-radius:99px;font:14px system-ui,sans-serif;text-decoration:none;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2)">← Portfölj</a>
-
 <!-- INTRON. Den här rutan täcker sidan från första stund, så att du aldrig ser
      sidan "hoppa" medan typsnitten laddas. Koden längst ner fyller den med en
      liten animation och tar sedan bort den. Klicka eller tryck en tangent för att hoppa över. -->
@@ -366,6 +413,8 @@
     <p class="meny-rubrik">Läge</p>
     <nav class="lagen">
       <button id="lage-skriv" class="aktiv">✍️ Skriv</button>
+      <button id="lage-omvant">🔄 Omvänt</button>
+      <button id="lage-tid">⏱️ Tidspress</button>
       <button id="lage-survivor">🎯 Survivor</button>
       <button id="lage-quiz">❓ Quiz</button>
       <button id="lage-kort">🃏 Flashcards</button>
@@ -375,6 +424,42 @@
     <div class="teman" id="teman"></div>
     <p class="meny-rubrik">Statistik</p>
     <div class="brickor" id="brickor"></div>
+    <!-- INSTÄLLNINGAR: frivilligt konto. Utan konto sparas allt ändå i den här
+         webbläsaren. Med konto sparas framstegen också i molnet, så att de följer
+         med till andra enheter och finns kvar om du rensar webbläsaren (se avsnitt 8 i koden). -->
+    <p class="meny-rubrik">Inställningar: spara i molnet</p>
+    <p class="kopia-info" id="konto-status"></p>
+    <!-- Visas när du INTE är inloggad -->
+    <div class="kopia" id="konto-utloggad" hidden>
+      <button id="konto-visa-form">🔐 Logga in eller skapa konto</button>
+    </div>
+    <!-- Visas när du ÄR inloggad -->
+    <div class="kopia" id="konto-inloggad" hidden>
+      <button id="konto-synka" title="Hämtar det som ligger i molnet, slår ihop och sparar">☁️ Synka nu</button>
+      <button id="konto-logga-ut">🚪 Logga ut</button>
+      <button id="konto-radera" title="Tar bort kontot och allt som sparats i molnet">🗑️ Radera kontot</button>
+    </div>
+    <!-- Formuläret. <form> gör att Enter fungerar och att webbläsaren kan spara lösenordet. -->
+    <form class="synk-steg" id="konto-form" hidden>
+      <b>🔐 Konto (frivilligt)</b>
+      <input type="email" id="konto-mejl" placeholder="Mejladress" autocomplete="username">
+      <input type="password" id="konto-losen" placeholder="Lösenord (minst 6 tecken)" autocomplete="current-password">
+      <button type="submit" id="konto-logga-in">Logga in</button>
+      <button type="button" id="konto-skapa">Skapa konto</button>
+      <button type="button" id="konto-glomt">Glömt lösenordet?</button>
+      <p class="kopia-info">Vi sparar bara din mejladress och dina framsteg i danskan. Ingen annan kan se dem.</p>
+    </form>
+    <!-- SÄKERHETSKOPIA: spara dina framsteg i en fil och läs in dem igen,
+         t.ex. för att flytta dem till en annan webbläsare (se avsnitt 7 i koden). -->
+    <p class="meny-rubrik">Säkerhetskopia till fil</p>
+    <div class="kopia">
+      <button id="kopia-spara">💾 Spara framsteg till fil</button>
+      <button id="kopia-las">📂 Läs in från fil</button>
+      <!-- Den riktiga filväljaren är gömd. Knappen ovanför "klickar" på den. -->
+      <input type="file" id="kopia-fil" accept=".json,application/json" hidden>
+    </div>
+    <p class="kopia-info" id="kopia-info"></p>
+
   </div>
   </header>
 
@@ -386,6 +471,7 @@
 
 <script src="ord.js"></script>
 <script src="ord-teman.js"></script>
+<script src="firebase-installning.js"></script>
 <script>
 // =====================================================================
 // 0. SPARA OCH HÄMTA
@@ -436,16 +522,48 @@ function lada(ord) { return lador[ord.da] || 0; }
 // Vilket tema är valt? "" = dina vanliga upplåsta ord från ord.js.
 // Annars namnet på temat, t.ex. "Färger". Sparas så att valet finns kvar.
 let valtTema = hamta("danska-tema") || "";
+// Ett extra val under "Öva på": SVÅRA ORD (se svaraOrd nedan). Det är inget riktigt
+// tema, men det fungerar likadant, så vi sparar det i valtTema under det här namnet.
+const SVARA = "Svåra ord";
 // Finns inte temat längre (t.ex. om du bytt namn på det)? Gå tillbaka till de vanliga orden.
-if (valtTema && !teman.some(t => t.namn === valtTema)) valtTema = "";
+if (valtTema && valtTema !== SVARA && !teman.some(t => t.namn === valtTema)) valtTema = "";
 
 // Listan med ord du övar på just nu.
 //   Inget tema valt -> de upplåsta orden från ord.js
 //   Tema valt       -> alla ord i temat (teman är öppna direkt)
+//   Svåra ord       -> orden du har svårast för just nu (se svaraOrd)
 function aktivLista() {
   if (!valtTema) return upplastaOrd();
+  if (valtTema === SVARA) return svaraOrd();
   return teman.find(t => t.namn === valtTema).ord;
 }
+
+// Alla ord du har svarat på minst en gång (upplåsta ord och temaord).
+// "o.da in lador" = ordet har en låda sparad, alltså har du svarat på det.
+// Ett ord som finns på två ställen (t.ex. "to") räknas bara en gång.
+function ovadeOrd() {
+  const sett = new Set();
+  const alla = [...upplastaOrd(), ...teman.flatMap(t => t.ord)].filter(o => o.da in lador);
+  return alla.filter(o => !sett.has(o.da) && sett.add(o.da));
+}
+
+// Är ordet svårt just nu? Du har svarat på det, det är inte klarat, och det
+// ligger i låda 0 eller 1. Ett fel skickar ordet till låda 0, så felord hamnar
+// här direkt. När du svarat rätt några gånger åker det ut av sig självt.
+function arSvart(o) { return !klarat(o) && lada(o) <= 1; }
+
+// SVÅRA ORD = alla övade ord som är svåra just nu.
+// Finns inga svåra tar vi de övade ord som inte är klarade, och är allt klarat
+// tar vi dina upplåsta ord (då finns inget svårt kvar, bra jobbat!).
+function svaraOrd() {
+  const ovade = ovadeOrd();
+  const svara = ovade.filter(arSvart);
+  if (svara.length > 0) return svara;
+  const ejKlarade = ovade.filter(o => !klarat(o));
+  return ejKlarade.length > 0 ? ejKlarade : upplastaOrd();
+}
+// Antal ord som verkligen är svåra just nu. Visas på knappen och i målraden.
+function antalSvara() { return ovadeOrd().filter(arSvart).length; }
 
 // Väljer nästa ord med "viktad slump".
 function slumpaOrd() {
@@ -479,7 +597,9 @@ function registrera(ord, ratt, skrivlage = false) {
   else if (skrivlage) framsteg.iRad[ord.da] = (framsteg.iRad[ord.da] || 0) + 1;
   uppdateraStreak();
   raknaIdag(ratt);          // skriv upp svaret i dagboken (se 2c)
+  framsteg.andrad[ord.da] = Date.now();   // kom ihåg när ordet ändrades (för synken)
   sparaFramsteg();
+  synkSnart();              // spara i molnet om en stund (om du är inloggad, se avsnitt 8)
   return forsokLasaUpp();
 }
 
@@ -526,9 +646,14 @@ if (!framsteg) {
 }
 // Äldre sparade framsteg har ingen dagbok än. Då börjar vi med en tom.
 framsteg.historik = framsteg.historik || {};
+// NÄR varje ord senast ändrades (millisekunder sedan 1970, t.ex. { hus: 1794655119611 }).
+// Synken använder det för att veta vilken dator som har det senaste om ett ord.
+framsteg.andrad = framsteg.andrad || {};
 
 function sparaFramsteg() { lagra("danska-framsteg", JSON.stringify(framsteg)); }
 
+// Din nivå: 10 upplåsta ord = nivå 1, 20 = nivå 2 och så vidare.
+function niva() { return Math.ceil(Math.min(framsteg.upplasta, ORD.length) / NYA_PER_OMGANG); }
 function upplastaOrd() { return ORD.slice(0, Math.min(framsteg.upplasta, ORD.length)); }
 function klarat(ord) { return (framsteg.iRad[ord.da] || 0) >= KLARAT_GRANS; }
 
@@ -578,7 +703,7 @@ function procent(d) { return d.svar ? Math.round(100 * d.ratt / d.svar) : 0; }
 const AUTO_NASTA_MS = 900;
 let autoTimer = null;    // "väckarklockan" för att gå vidare automatiskt
 
-let lage = "skriv";      // "skriv", "survivor", "quiz", "kort" eller "lista"
+let lage = "skriv";      // "skriv", "omvant", "tid", "survivor", "quiz", "kort" eller "lista"
 let poang = 0;           // poäng under den här sessionen
 let aktuellt = null;     // ordet som visas just nu
 const innehall = document.getElementById("innehall");
@@ -587,6 +712,33 @@ const innehall = document.getElementById("innehall");
 let serie = 0;           // rätt i rad just nu
 let rekord = 0;          // ditt bästa resultat någonsin
 try { rekord = Number(hamta("danska-rekord")) || 0; } catch (e) {}
+
+// --- TIDSPRESS ---
+// Du har några sekunder på dig per ord. Hinner du inte räknas det som fel, och
+// precis som i Survivor är omgången slut vid första felet.
+// sekunder  = hur lång tid du har (sparas, så att ditt val finns kvar)
+// rekordTid = bästa serien för varje tid, t.ex. { "5": 3, "8": 11 }.
+//             Ett rekord per tid, annars vore 12 sekunder fusk mot 5 sekunder.
+const TIDSVAL = [5, 8, 12];
+let sekunder = Number(hamta("danska-tid-sekunder")) || 8;
+if (!TIDSVAL.includes(sekunder)) sekunder = 8;
+let rekordTid = {};
+try { rekordTid = JSON.parse(hamta("danska-rekord-tid") || "{}") || {}; } catch (e) {}
+let tidKlocka = null;    // "väckarklockan" som ringer när tiden är slut
+
+// Survivor och Tidspress är "rätt i rad"-spel: ett fel och omgången är slut.
+function arSerieLage() { return lage === "survivor" || lage === "tid"; }
+// Rekordet för läget du spelar just nu
+function nuvarandeRekord() { return lage === "tid" ? (rekordTid[sekunder] || 0) : rekord; }
+function sparaRekord(nytt) {
+  if (lage === "tid") {
+    rekordTid[sekunder] = nytt;
+    lagra("danska-rekord-tid", JSON.stringify(rekordTid));
+  } else {
+    rekord = nytt;
+    lagra("danska-rekord", rekord);
+  }
+}
 
 // Brickornas värden från förra gången. Ändras ett värde får brickan en liten
 // "puls" (klassen "pulsa"), så att du ser vad som hände. Nyckeln är ikonen.
@@ -627,13 +779,14 @@ function uppdateraStats() {
   brickor.innerHTML = "";
   nyaBrickor = {};
 
-  if (lage === "survivor") {
-    brickor.append(bricka("🎯", serie, "i rad"), bricka("🏆", rekord, "rekord"));
+  if (arSerieLage()) {
+    brickor.append(bricka("🎯", serie, "i rad"),
+                   bricka("🏆", nuvarandeRekord(), "rekord" + (lage === "tid" ? " (" + sekunder + " s)" : "")));
   } else {
     brickor.append(bricka("⭐", poang, "poäng"));
   }
   brickor.append(
-    bricka("✅", kan + "/" + lista.length, valtTema ? "kan i temat" : "kan"),
+    bricka("✅", kan + "/" + lista.length, valtTema === SVARA ? "kan av de svåra" : valtTema ? "kan i temat" : "kan"),
     bricka("🔥", visadStreak(), visadStreak() === 1 ? "dag i rad" : "dagar i rad"),
     bricka("📅", idag.svar, "svar i dag" + (idag.svar ? " · " + procent(idag) + " % rätt" : ""))
   );
@@ -641,13 +794,14 @@ function uppdateraStats() {
 
   // MÅLRADEN, t.ex. "18/20 klarade · 2 kvar till nya ord 🔓".
   // malRad(stor, liten, text) bygger: stor siffra (fet), "/liten", och en förklaring.
-  // I Survivor visas din serie och ditt rekord först.
+  // I Survivor och Tidspress visas din serie och ditt rekord först.
   const malRad = (stor, liten, text) => {
     motNastaText.innerHTML = "";
-    if (lage === "survivor") {
+    if (arSerieLage()) {
       const sv = document.createElement("span");
       sv.className = "mal-survivor";
-      sv.textContent = "🎯 " + serie + " i rad · 🏆 " + rekord;
+      sv.textContent = (lage === "tid" ? "⏱️ " + sekunder + " s · " : "") +
+                       "🎯 " + serie + " i rad · 🏆 " + nuvarandeRekord();
       motNastaText.append(sv);
     }
     const siffra = document.createElement("span");
@@ -661,6 +815,14 @@ function uppdateraStats() {
     motNastaText.append(siffra, t);
   };
 
+  if (valtTema === SVARA) {
+    // Svåra ord: hur många av dina övade ord är INTE svåra längre?
+    const ovade = ovadeOrd().length;
+    const svara = antalSvara();
+    malRad(svara, ovade, svara === 1 ? "svårt ord kvar · öva tills det är 0" : "svåra ord kvar · öva tills det är 0");
+    satStapel(ovade ? 1 - svara / ovade : 1);
+    return;
+  }
   if (valtTema) {
     // I ett tema: hur många av temats ord har nått sista lådan?
     malRad(kan, lista.length, "i sista lådan · " + valtTema);
@@ -673,7 +835,7 @@ function uppdateraStats() {
     malRad(klarade, ORD.length, "klarade · alla ord upplåsta 🎉");
   } else {
     const kvar = ovning.length - klarade;
-    malRad(klarade, ovning.length, "klarade · " + kvar + " kvar till nya ord 🔓");
+    malRad(klarade, ovning.length, "klarade · nivå " + niva() + " · " + kvar + " kvar till nya ord 🔓");
   }
   satStapel(klarade / ovning.length);
 }
@@ -716,14 +878,15 @@ function ordkort(text) {
 // Väljer ett nytt ord och visar det i rätt läge. Anropas efter varje fråga.
 function nastaFraga() {
   clearTimeout(autoTimer);   // stoppa en automatisk "nästa" som kanske väntar
+  clearTimeout(tidKlocka);   // stoppa Tidspress-klockan från förra ordet
   if (aktuellt) document.getElementById("meddelande").textContent = "";
   aktuellt = slumpaOrd();
+  byggTeman();              // siffran på "⚠️ Svåra ord" i menyn ändras när du övar
   uppdateraStats();
   if (lage === "lista") visaOrdlista();
   else if (lage === "kort") visaKort();
   else if (lage === "quiz") visaQuiz();
-  else if (lage === "survivor") visaSkriv(true);
-  else visaSkriv(false);
+  else visaSkriv();          // Skriv, Omvänt, Tidspress och Survivor
   tonaIn(innehall);
 }
 
@@ -831,13 +994,38 @@ function studsa(element, ratt) {
 }
 
 // ---------------------------------------------------------------------
-// LÄGE: SKRIV – du ser det svenska ordet och skriver det danska
-// Samma funktion används för SURVIVOR (survivor = true: ett fel och omgången är slut).
+// SKRIV-LÄGENA: Skriv, Omvänt, Tidspress och Survivor
 // ---------------------------------------------------------------------
-function visaSkriv(survivor) {
+// Alla fyra är "se ett ord och skriv översättningen", så de delar på samma
+// funktion. Det som skiljer dem åt räknar vi ut här i början:
+//   omvant    = sant i Omvänt: du ser DANSKA och skriver SVENSKA
+//   tid       = sant i Tidspress: en klocka räknar ner
+//   serieLage = sant i Survivor och Tidspress: ett fel och omgången är slut
+function visaSkriv() {
+  const omvant = lage === "omvant";
+  const tid = lage === "tid";
+  const serieLage = arSerieLage();
   innehall.innerHTML = "";
 
-  const fraga = ordkort(aktuellt.sv);
+  // Tidspress: knappar för att välja 5, 8 eller 12 sekunder
+  if (tid) {
+    const tidval = document.createElement("div");
+    tidval.className = "tidval";
+    TIDSVAL.forEach(sek => {
+      const b = knapp(sek + " s", () => {
+        sekunder = sek;
+        lagra("danska-tid-sekunder", sek);
+        serie = 0;            // ny tid = ny omgång
+        nastaFraga();
+      });
+      if (sek === sekunder) b.classList.add("aktiv");
+      tidval.append(b);
+    });
+    innehall.append(tidval);
+  }
+
+  // Kortet visar svenska (vanligt) eller danska (Omvänt)
+  const fraga = ordkort(omvant ? aktuellt.da : aktuellt.sv);
   fraga.style.cursor = "default";
 
   // Lådmätaren under kortet. Vi byter ut den efter svaret så du ser lådan röra sig.
@@ -847,44 +1035,58 @@ function visaSkriv(survivor) {
   falt.type = "text";
   falt.autocomplete = "off";
   falt.spellcheck = false;     // inga rödstreck under danska ord
-  falt.placeholder = "Skriv på danska…";
+  falt.placeholder = omvant ? "Skriv på svenska…" : "Skriv på danska…";
 
-  // Knappar för æ, ø, å (svenska tangentbord saknar æ och ø)
+  // Knappar för æ, ø, å (svenska tangentbord saknar æ och ø).
+  // I Omvänt skriver du svenska, och då behövs de inte.
   const tecken = document.createElement("div");
   tecken.className = "tecken";
-  ["æ", "ø", "å"].forEach(t =>
-    tecken.append(knapp(t, () => { falt.value += t; falt.focus(); })));
+  if (!omvant) {
+    ["æ", "ø", "å"].forEach(t =>
+      tecken.append(knapp(t, () => { falt.value += t; falt.focus(); })));
+  }
+
+  // Tidspress: klockan, en stapel som krymper
+  const skena = document.createElement("div");
+  skena.className = "tidskena";
+  const stapel = document.createElement("div");
+  stapel.className = "tidstapel";
+  skena.append(stapel);
+  let klockAnimation = null;
 
   const svar = document.createElement("div");
   svar.className = "svar";
   const skillnad = document.createElement("div");   // här visas bokstavsjämförelsen
 
+  // En liten förklaring längst ner i vissa lägen
+  const info = document.createElement("p");
+  info.className = "info";
+  if (omvant) info.textContent = "Omvänt flyttar lådan, men \"klarat\" (3 i rad) räknas bara när du skriver danska.";
+  if (tid) info.textContent = "Hinner du inte räknas det som fel, och omgången är slut.";
+
   let klar = false;   // har du redan svarat på det här ordet?
-  let slut = false;   // är Survivor-omgången över?
+  let slut = false;   // är Survivor-/Tidspress-omgången över?
+  let klarTid = 0;    // när svaret kom (så att ett sent Enter inte hoppar förbi svaret)
+  let synonym = null; // ett annat ord med samma betydelse som du skrev (se kontrollera)
 
-  // Körs när du trycker Enter (eller på knappen).
-  function kontrollera() {
-    if (klar) {                 // redan svarat? Då betyder Enter "gå vidare".
-      if (slut) serie = 0;
-      nastaFraga();
-      return;
-    }
-    const skrivet = falt.value.trim();
-    if (!skrivet) return;       // tomt fält? gör ingenting
+  // Visar resultatet. Används både när du svarar och när tiden tar slut.
+  //   ratt    = sant om svaret var rätt
+  //   skrivet = det du skrev (tomt om tiden tog slut)
+  //   tidSlut = sant om klockan hann före dig
+  function visaResultat(ratt, skrivet, tidSlut) {
     klar = true;
+    klarTid = Date.now();
+    clearTimeout(tidKlocka);
+    if (klockAnimation) klockAnimation.pause();   // frys klockan där den var
 
-    // lika() i stället för === så att punkt, komma, ? och stora bokstäver inte spelar roll
-    const ratt = lika(skrivet, aktuellt.da);
     const forraLada = lada(aktuellt);          // lådan före svaret (för lådmätaren)
-    const upplast = registrera(aktuellt, ratt, true);
+    // Omvänt räknas inte för "klarat", eftersom svenska är lättare att skriva.
+    const upplast = registrera(aktuellt, ratt, !omvant);
 
-    if (survivor) {
+    if (serieLage) {
       if (ratt) {
         serie++;
-        if (serie > rekord) {
-          rekord = serie;
-          lagra("danska-rekord", rekord);
-        }
+        if (serie > nuvarandeRekord()) sparaRekord(serie);
       } else {
         slut = true;
       }
@@ -895,13 +1097,18 @@ function visaSkriv(survivor) {
     matare.replaceWith(nyMatare);
     matare = nyMatare;
 
-    svar.textContent = ratt ? "✓ Flot!" : "✗ Inte riktigt";
-    if (!ratt) skillnad.append(visaSkillnad(stada(skrivet), stada(aktuellt.da)));
+    const rattSvar = omvant ? aktuellt.sv : aktuellt.da;
+    if (ratt) svar.textContent = omvant ? "✓ Rätt!" : "✓ Flot!";
+    else if (tidSlut) svar.textContent = "⏰ Tiden är slut! Rätt: " + rattSvar;
+    else svar.textContent = "✗ Inte riktigt";
+    if (ratt && synonym) svar.textContent += "  Också rätt! Ordet vi tänkte på: " + aktuellt.da;
+    // Bokstavsjämförelse när du skrev något som var fel
+    if (!ratt && skrivet) skillnad.append(visaSkillnad(stada(skrivet), stada(rattSvar)));
     if (aktuellt.tips) svar.textContent += "  (" + aktuellt.tips + ")";
     svar.textContent += upplast;
     if (slut) {
       svar.textContent += "  –  GAME OVER! Du fick " + serie + " rätt i rad."
-        + (serie > 0 && serie === rekord ? " 🏆 Nytt rekord!" : "");
+        + (serie > 0 && serie === nuvarandeRekord() ? " 🏆 Nytt rekord!" : "");
     }
     falt.classList.add(ratt ? "ratt" : "fel");
     studsa(fraga, ratt);
@@ -911,19 +1118,78 @@ function visaSkriv(survivor) {
 
     // Rätt, och inget extra att läsa? Gå vidare av dig själv efter en kort stund.
     // Knappen får en liten stapel som fylls under tiden (klassen "vantar").
-    if (ratt && !aktuellt.tips && !upplast && AUTO_NASTA_MS > 0) {
+    // Låste du upp nya ord? Fira med ett ljus! (se avsnitt 9)
+    if (upplast) setTimeout(fira, 700);
+
+    if (ratt && !aktuellt.tips && !upplast && !synonym && AUTO_NASTA_MS > 0) {
       nasta.classList.add("vantar");
       nasta.style.setProperty("--auto", AUTO_NASTA_MS + "ms");
       autoTimer = setTimeout(nastaFraga, AUTO_NASTA_MS);
     }
   }
 
+  // Körs när du trycker Enter (eller på knappen).
+  function kontrollera() {
+    if (festOppen) return;      // firandet visas? Då hör Enter till det.
+    if (klar) {                 // redan svarat? Då betyder Enter "gå vidare".
+      // Tog tiden slut precis när du tryckte Enter (inom 0,4 s)? Då hoppar vi
+      // inte vidare, så att du hinner se det rätta svaret.
+      if (Date.now() - klarTid < 400) return;
+      if (slut) serie = 0;
+      nastaFraga();
+      return;
+    }
+    const skrivet = falt.value.trim();
+    if (!skrivet) return;       // tomt fält? gör ingenting
+    // lika() är snäll mot punkt, komma, ? och stora bokstäver.
+    // rattSvenska() är ännu snällare, se nedan.
+    // I Skriv räknas också ett ANNAT danskt ord med exakt samma svenska som rätt
+    // (t.ex. "ofta" = ofte eller tit). Då visar vi vilket ord vi tänkte på.
+    synonym = omvant ? null : hittaSynonym(skrivet, aktuellt);
+    const ratt = omvant ? rattSvenska(skrivet, aktuellt) : (lika(skrivet, aktuellt.da) || !!synonym);
+    visaResultat(ratt, skrivet, false);
+  }
+
   const nasta = knapp("Kolla (Enter)", kontrollera);
   nasta.classList.add("primar");
   falt.onkeydown = e => { if (e.key === "Enter") kontrollera(); };
 
-  innehall.append(fraga, matare, falt, tecken, svar, skillnad, nasta);
+  innehall.append(fraga);
+  if (tid) innehall.append(skena);
+  innehall.append(matare, falt, tecken, svar, skillnad, nasta);
+  if (info.textContent) innehall.append(info);
   falt.focus();
+
+  // Tidspress: starta klockan. Stapeln krymper med element.animate (fungerar bra
+  // i Firefox) och byter färg från gul till terrakotta på vägen.
+  // setTimeout(funktion, millisekunder) kör funktionen EN gång när tiden gått.
+  if (tid) {
+    klockAnimation = stapel.animate(
+      [{ width: "100%", background: "#e2b25c" },
+       { width: "40%",  background: "#e2b25c", offset: 0.6 },
+       { width: "0%",   background: "#d0745a" }],
+      { duration: sekunder * 1000, easing: "linear", fill: "forwards" });
+    tidKlocka = setTimeout(() => { if (!klar) visaResultat(false, "", true); }, sekunder * 1000);
+  }
+}
+
+// Kollar ett svenskt svar i läget Omvänt. Vi är lite extra snälla:
+//   • stora/små bokstäver, punkt, komma, ! och ? spelar ingen roll
+//   • mellanslag och bindestreck räknas inte, så "i dag" = "idag" och "hej då" = "hejdå"
+//   • "att" i början får vara med eller inte, så "att göra" = "göra"
+//   • svaren i ordets "ocksa"-lista (i ord.js) räknas också som rätt, t.ex. "kul" för "sjov"
+// Letar efter ett annat danskt ord (i ord.js eller ett tema) som har EXAKT samma
+// svenska som ordet du övar på, och som du skrev. Svarar med ordet, eller null.
+function hittaSynonym(skrivet, ord) {
+  const alla = [...ORD, ...teman.flatMap(t => t.ord)];
+  return alla.find(o => o.da !== ord.da && stada(o.sv) === stada(ord.sv) && lika(skrivet, o.da)) || null;
+}
+
+function rattSvenska(skrivet, ord) {
+  //   • en förklaring inom parentes behöver du inte skriva: "känna (någon)" = "känna"
+  const tvatta = t => stada(t.replace(/\(.*?\)/g, "")).replace(/^att /, "").replace(/[\s\-]/g, "");
+  const godkanda = [ord.sv, ...(ord.ocksa || [])].map(tvatta);
+  return godkanda.includes(tvatta(skrivet));
 }
 
 // ---------------------------------------------------------------------
@@ -1111,7 +1377,7 @@ function knapp(text, vidKlick) {
 }
 
 // Alla lägen. Lägger du till ett läge: skriv det här + en knapp med id="lage-NAMN".
-const LAGEN = ["skriv", "survivor", "quiz", "kort", "lista"];
+const LAGEN = ["skriv", "omvant", "tid", "survivor", "quiz", "kort", "lista"];
 function bytLage(nytt) {
   lage = nytt;
   serie = 0;     // byter du läge börjar en ny Survivor-omgång från noll
@@ -1127,6 +1393,7 @@ function byggTeman() {
   const rad = document.getElementById("teman");
   rad.innerHTML = "";
   const val = [{ namn: "", text: "📚 Mina ord (" + upplastaOrd().length + ")" },
+               { namn: SVARA, text: "⚠️ Svåra ord (" + antalSvara() + ")" },
                ...teman.map(t => ({ namn: t.namn, text: t.ikon + " " + t.namn + " (" + t.ord.length + ")" }))];
   val.forEach(v => {
     const b = knapp(v.text, () => {
@@ -1149,7 +1416,7 @@ function byggTeman() {
 // =====================================================================
 // Välj intro: "ljus" (ett stearinljus tänds), "flagga" (danska flaggan ritas)
 // eller "hej" (en hälsning skrivs ut). Tom text "" = ingen intro alls.
-const INTRO = "ljus";
+const INTRO = "flagga";   // vald 2026-11-14
 // true = intron visas bara första gången per flik (inte när du laddar om sidan).
 const INTRO_EN_GANG_PER_FLIK = false;
 
@@ -1279,14 +1546,14 @@ const menyKnapp = document.getElementById("meny-knapp");
 let menyOppen = false;
 let stangAnimation = null;   // stängningsanimationen, om den pågår just nu
 
-const LAGESNAMN = { skriv: "✍️ Skriv", survivor: "🎯 Survivor", quiz: "❓ Quiz",
+const LAGESNAMN = { skriv: "✍️ Skriv", omvant: "🔄 Omvänt", tid: "⏱️ Tidspress", survivor: "🎯 Survivor", quiz: "❓ Quiz",
                     kort: "🃏 Flashcards", lista: "📖 Ordlista" };
 
 // Texten på menyknappen, t.ex. "✍️ Skriv · 🎨 Färger"
 function uppdateraMenyEtikett() {
   const tema = teman.find(t => t.namn === valtTema);
   document.getElementById("meny-etikett").textContent =
-    LAGESNAMN[lage] + " · " + (tema ? tema.ikon + " " + tema.namn : "📚 Mina ord");
+    LAGESNAMN[lage] + " · " + (valtTema === SVARA ? "⚠️ Svåra ord" : tema ? tema.ikon + " " + tema.namn : "📚 Mina ord");
 }
 
 function oppnaMeny() {
@@ -1327,6 +1594,498 @@ document.addEventListener("click", e => { if (menyOppen && !meny.contains(e.targ
 // Esc stänger menyn
 document.addEventListener("keydown", e => { if (e.key === "Escape") stangMeny(); });
 
+// =====================================================================
+// 7. SÄKERHETSKOPIA (spara och läs in framstegen som en fil)
+// =====================================================================
+// Framstegen ligger i webbläsarens localStorage och följer INTE med via Git.
+// Med de här knapparna kan du spara allt i en liten fil (JSON = text med
+// {namn: värde}) och läsa in den på en annan dator eller i en annan webbläsare.
+// Här är alla namn vi sparar under:
+const SPARNYCKLAR = ["danska-lador", "danska-framsteg", "danska-rekord", "danska-tema",
+                     "danska-tid-sekunder", "danska-rekord-tid"];
+const kopiaInfo = document.getElementById("kopia-info");
+
+// SPARA: bygg ett objekt med allt, gör om det till text och "ladda ner" det.
+// En "Blob" är en fil som bara finns i minnet. Vi gör en osynlig länk till den
+// och klickar på länken, då sparar webbläsaren filen i Hämtade filer / Downloads.
+document.getElementById("kopia-spara").onclick = () => {
+  const data = { app: "danska-ord", sparad: new Date().toISOString(), varden: {} };
+  SPARNYCKLAR.forEach(n => { const v = hamta(n); if (v !== null) data.varden[n] = v; });
+  const fil = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const lank = document.createElement("a");
+  lank.href = URL.createObjectURL(fil);
+  lank.download = "danska-framsteg-" + datum() + ".json";
+  document.body.append(lank);
+  lank.click();
+  lank.remove();
+  setTimeout(() => URL.revokeObjectURL(lank.href), 1000);   // släpp minnet efter en stund
+  kopiaInfo.textContent = "Sparad som " + lank.download + " i din mapp för nedladdningar.";
+};
+
+// LÄS IN: knappen öppnar den gömda filväljaren.
+document.getElementById("kopia-las").onclick = () => document.getElementById("kopia-fil").click();
+
+// När du valt en fil: läs den, kolla att den är från den här appen, fråga om
+// du verkligen vill byta ut dina framsteg, spara och ladda om sidan.
+document.getElementById("kopia-fil").onchange = async e => {
+  const fil = e.target.files[0];
+  e.target.value = "";                 // så att samma fil kan väljas igen senare
+  if (!fil) return;
+  let data;
+  try { data = JSON.parse(await fil.text()); } catch (fel) { data = null; }
+  if (!data || data.app !== "danska-ord" || typeof data.varden !== "object") {
+    kopiaInfo.textContent = "⚠️ Det där är ingen säkerhetskopia från Danska ord.";
+    return;
+  }
+  // Visa vad filen innehåller, så att du vet vad du byter till
+  let iFilen = "";
+  try {
+    const f = JSON.parse(data.varden["danska-framsteg"]);
+    iFilen = "\n\nI filen: " + f.upplasta + " ord upplåsta, " + f.streak + " dagar i rad (senast övad " + f.senastOvad + ").";
+  } catch (fel) {}
+  const ok = confirm("Byta ut framstegen i den här webbläsaren mot filen?" + iFilen +
+                     "\n\nTips: spara först en kopia av det du har nu om du är osäker.");
+  if (!ok) return;
+  SPARNYCKLAR.forEach(n => {
+    if (n in data.varden) lagra(n, data.varden[n]);
+    else { try { localStorage.removeItem(n); } catch (fel) {} }
+  });
+  location.reload();                   // ladda om sidan så att allt läses in på nytt
+};
+
+// =====================================================================
+// 8. KONTO OCH MOLNET (frivilligt, via Firebase)
+// =====================================================================
+// Utan konto sparas allt i webbläsarens localStorage, precis som förut.
+// Med ett konto sparas framstegen OCKSÅ i molnet hos Firebase (en gratis tjänst
+// från Google). Då kan du öva på mobilen och datorn med samma framsteg, och de
+// finns kvar även om du rensar webbläsaren.
+//
+// Hur pratar sidan med Firebase? Med vanliga fetch-anrop (samma sak som när en
+// webbsida hämtar något från internet), utan något extra bibliotek:
+//   * identitytoolkit.googleapis.com  = inloggningen (mejl + lösenord)
+//   * securetoken.googleapis.com      = byter en gammal "biljett" mot en ny
+//   * firestore.googleapis.com        = databasen där framstegen ligger
+//
+// BILJETTER: när du loggar in får sidan två saker av Firebase:
+//   idToken      = en biljett som gäller i 1 timme. Den visas för databasen.
+//   refreshToken = används för att få en ny idToken när den gamla gått ut.
+// refreshToken sparas i localStorage ("danska-konto"), så att du är inloggad
+// nästa gång. Lösenordet sparas ALDRIG, det skickas bara till Firebase.
+//
+// Varje person har ett eget dokument: framsteg/<ditt användar-id>.
+// Reglerna i Firebase (se LASMIG.md) gör att bara DU kan läsa och skriva det.
+//
+// Inställningarna (apiKey och projectId) ligger i firebase-installning.js.
+// apiKey är INGEN hemlighet: den talar bara om vilket Firebase-projekt sidan
+// hör till. Skyddet sitter i reglerna, inte i nyckeln.
+const FB = window.FIREBASE || {};
+const MOLN_PA = Boolean(FB.apiKey && FB.projectId);   // är molnet inställt?
+const SYNK_AUTO = true;   // true = hämta när sidan öppnas, spara 10 s efter att du svarat
+
+const kontoStatusRuta = document.getElementById("konto-status");
+function synkStatus(text) { kontoStatusRuta.textContent = text; }
+
+// Felkoder från Firebase -> svenska. Koden kastar t.ex. new Error("natet").
+const KONTO_FEL = {
+  "EMAIL_EXISTS": "Det finns redan ett konto med den mejladressen. Klicka Logga in i stället.",
+  "INVALID_EMAIL": "Mejladressen ser inte rätt ut.",
+  "MISSING_PASSWORD": "Skriv ett lösenord.",
+  "WEAK_PASSWORD": "Lösenordet är för kort. Det måste vara minst 6 tecken.",
+  "INVALID_LOGIN_CREDENTIALS": "Fel mejl eller lösenord.",
+  "EMAIL_NOT_FOUND": "Fel mejl eller lösenord.",
+  "INVALID_PASSWORD": "Fel mejl eller lösenord.",
+  "USER_DISABLED": "Kontot är avstängt.",
+  "TOO_MANY_ATTEMPTS_TRY_LATER": "För många försök. Vänta en stund och prova igen.",
+  "OPERATION_NOT_ALLOWED": "Inloggning med mejl är inte påslagen i Firebase än.",
+  "utloggad": "Du har blivit utloggad. Logga in igen.",
+  "nej": "Molnet sa nej (kolla reglerna i Firebase).",
+  "natet": "Kom inte fram till molnet. Är du ansluten till internet?",
+  "trasig": "Det som låg i molnet gick inte att läsa.",
+};
+function felText(e) { return KONTO_FEL[e.message] || e.message; }
+
+// ---------- Inloggningen ----------
+// Det vi kommer ihåg om kontot: { mejl, uid, refresh }. uid = ditt användar-id.
+function konto() {
+  try { return JSON.parse(hamta("danska-konto")) || null; } catch (e) { return null; }
+}
+let biljett = null, biljettGaller = 0;   // idToken och när den slutar gälla (bara i minnet)
+
+// Skickar ett anrop till Firebase och packar upp svaret (JSON).
+// Firebase skickar fel som { error: { message: "EMAIL_EXISTS" } }.
+async function firebase(url, kropp, formular = false) {
+  let svar;
+  try {
+    svar = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": formular ? "application/x-www-form-urlencoded" : "application/json" },
+      body: formular ? new URLSearchParams(kropp) : JSON.stringify(kropp),
+    });
+  } catch (e) { throw new Error("natet"); }
+  const data = await svar.json().catch(() => ({}));
+  if (!svar.ok) {
+    // T.ex. "WEAK_PASSWORD : Password should be at least 6 characters" -> "WEAK_PASSWORD"
+    const kod = String((data.error && data.error.message) || svar.status).split(" ")[0];
+    throw new Error(kod);
+  }
+  return data;
+}
+const INLOGG = "https://identitytoolkit.googleapis.com/v1/accounts:";
+
+// Spara det Firebase gav oss efter inloggning eller ny biljett.
+function kommIhag(mejl, uid, refresh, idToken, sekunder) {
+  lagra("danska-konto", JSON.stringify({ mejl, uid, refresh }));
+  biljett = idToken;
+  biljettGaller = Date.now() + (Number(sekunder) || 3600) * 1000;
+}
+
+// Logga in (ny = false) eller skapa ett nytt konto (ny = true).
+async function loggaIn(mejl, losen, ny) {
+  const d = await firebase(INLOGG + (ny ? "signUp" : "signInWithPassword") + "?key=" + FB.apiKey,
+                           { email: mejl, password: losen, returnSecureToken: true });
+  kommIhag(d.email || mejl, d.localId, d.refreshToken, d.idToken, d.expiresIn);
+}
+
+// Ge en färsk idToken. Är den gamla (nästan) slut byter vi refreshToken mot en ny.
+async function giltigBiljett() {
+  const k = konto();
+  if (!k) throw new Error("utloggad");
+  if (biljett && Date.now() < biljettGaller - 60000) return biljett;
+  let d;
+  try {
+    d = await firebase("https://securetoken.googleapis.com/v1/token?key=" + FB.apiKey,
+                       { grant_type: "refresh_token", refresh_token: k.refresh }, true);
+  } catch (e) {
+    if (e.message === "natet") throw e;
+    glomKontot();                       // biljetten går inte att förnya (lösenordet bytt, kontot raderat ...)
+    throw new Error("utloggad");
+  }
+  kommIhag(k.mejl, d.user_id, d.refresh_token, d.id_token, d.expires_in);
+  return biljett;
+}
+
+function glomKontot() {
+  biljett = null;
+  try { localStorage.removeItem("danska-konto"); localStorage.removeItem("danska-synk-senast"); } catch (e) {}
+  visaKonto();
+}
+
+// ---------- Databasen (Firestore) ----------
+// Ditt dokument har två fält: paket (alla framsteg som text) och sparad (när).
+function dokUrl() {
+  return "https://firestore.googleapis.com/v1/projects/" + FB.projectId +
+         "/databases/(default)/documents/framsteg/" + konto().uid;
+}
+async function databas(metod, kropp, forsok = 1) {
+  const token = await giltigBiljett();
+  let svar;
+  try {
+    svar = await fetch(dokUrl(), {
+      method: metod, cache: "no-store",
+      headers: { Authorization: "Bearer " + token, ...(kropp ? { "Content-Type": "application/json" } : {}) },
+      body: kropp ? JSON.stringify(kropp) : undefined,
+    });
+  } catch (e) { throw new Error("natet"); }
+  // 401 = biljetten dög inte. Hämta en ny och försök en gång till.
+  if (svar.status === 401 && forsok > 0) { biljett = null; return databas(metod, kropp, forsok - 1); }
+  if (svar.status === 404) return null;      // inget sparat i molnet än
+  if (svar.status === 401) throw new Error("utloggad");
+  if (svar.status === 403) throw new Error("nej");
+  if (!svar.ok) throw new Error("Molnet svarade " + svar.status);
+  return svar.json();
+}
+
+// Läs paketet ur molnet (null om inget finns)
+async function lasMolnet() {
+  const dok = await databas("GET");
+  const text = dok && dok.fields && dok.fields.paket && dok.fields.paket.stringValue;
+  if (!text) return null;
+  try { return JSON.parse(text); } catch (e) { throw new Error("trasig"); }
+}
+// Spara paketet i molnet. PATCH utan fältlista = ersätt hela dokumentet (skapa om det saknas).
+function skrivMolnet(paket) {
+  return databas("PATCH", { fields: {
+    paket: { stringValue: JSON.stringify(paket) },
+    sparad: { timestampValue: new Date().toISOString() },
+  } });
+}
+
+// ---------- Slå ihop ----------
+// Vilken sorts enhet är det här? Visas som "sparat från mobilen".
+function datornamn() {
+  const p = (navigator.userAgent || "").toLowerCase();
+  if (p.includes("iphone") || (p.includes("android") && p.includes("mobile"))) return "mobilen";
+  if (p.includes("ipad") || p.includes("android")) return "surfplattan";
+  return p.includes("windows") ? "Windows" : p.includes("mac") ? "Mac" : p.includes("linux") ? "Linux" : "en annan enhet";
+}
+
+// Paketet som sparas i molnet
+function synkPaket() {
+  return { app: "danska-ord", sparad: new Date().toISOString(), fran: datornamn(),
+           lador, framsteg, rekord, rekordTid };
+}
+
+// SLÅ IHOP ett paket från molnet med det som finns här. Svarar med antal ord som ändrades.
+// Ingenting skrivs över i onödan: för varje ord vinner den enhet som övade på ordet
+// SENAST (framsteg.andrad), och för nivån, rekorden och dagboken tar vi det största.
+function slaIhop(f) {
+  if (!f || f.app !== "danska-ord") throw new Error("trasig");
+  const fLador = f.lador || {}, fFram = f.framsteg || {};
+  const fIRad = fFram.iRad || {}, fAndrad = fFram.andrad || {};
+  // Övade den andra enheten senare än den här? Används när ett ord saknar tidsstämpel.
+  const fjarrNyare = (fFram.senastOvad || "") > (framsteg.senastOvad || "");
+  let andrade = 0;
+
+  new Set([...Object.keys(fLador), ...Object.keys(fIRad)]).forEach(da => {
+    const minTid = framsteg.andrad[da] || 0, deras = fAndrad[da] || 0;
+    const finnsHar = da in lador || da in framsteg.iRad;
+    const taDeras = deras > minTid || (!finnsHar) || (deras === 0 && minTid === 0 && fjarrNyare);
+    if (!taDeras) return;
+    const nyLada = fLador[da] || 0, nyIRad = fIRad[da] || 0;
+    if ((lador[da] || 0) !== nyLada || (framsteg.iRad[da] || 0) !== nyIRad) andrade++;
+    lador[da] = nyLada;
+    framsteg.iRad[da] = nyIRad;
+    if (deras) framsteg.andrad[da] = deras;
+  });
+
+  // Nivån: den största vinner
+  framsteg.upplasta = Math.max(framsteg.upplasta || 0, fFram.upplasta || 0);
+  // Dagboken: för varje dag tar vi den som har flest svar
+  Object.entries(fFram.historik || {}).forEach(([dag, d]) => {
+    if (!framsteg.historik[dag] || d.svar > framsteg.historik[dag].svar) framsteg.historik[dag] = d;
+  });
+  const dagar = Object.keys(framsteg.historik).sort();
+  while (dagar.length > 60) delete framsteg.historik[dagar.shift()];
+  // Dagsstreaken: den enhet som övade senast vet bäst
+  if (fjarrNyare) { framsteg.streak = fFram.streak || 0; framsteg.senastOvad = fFram.senastOvad; }
+  else if (fFram.senastOvad === framsteg.senastOvad) framsteg.streak = Math.max(framsteg.streak, fFram.streak || 0);
+  // Rekorden: det största vinner
+  rekord = Math.max(rekord, Number(f.rekord) || 0);
+  Object.entries(f.rekordTid || {}).forEach(([sek, r]) => { rekordTid[sek] = Math.max(rekordTid[sek] || 0, r); });
+
+  spara();
+  sparaFramsteg();
+  lagra("danska-rekord", rekord);
+  lagra("danska-rekord-tid", JSON.stringify(rekordTid));
+  return andrade;
+}
+
+// "13.05" eller "igår 21.40" eller "2026-11-12 08.15"
+function narText(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const kl = String(d.getHours()).padStart(2, "0") + "." + String(d.getMinutes()).padStart(2, "0");
+  const dagText = d.toLocaleDateString("sv-SE");
+  const dag = dagText === datum() ? "idag" : dagText === datum(-1) ? "igår" : dagText;
+  return dag + " " + kl;
+}
+
+// Efter en synk: rita om sidan med de nya siffrorna (ordet du övar på ligger kvar).
+function ritaOm() {
+  byggTeman();
+  uppdateraStats();
+  const upp = forsokLasaUpp();          // kanske har du klarat nivån på en annan enhet
+  if (upp.trim()) document.getElementById("meddelande").textContent = upp.trim();
+}
+
+// SYNKA = hämta molnet, slå ihop med det som finns här, spara allt tillbaka.
+// tyst = true när det sker automatiskt (då visas bara en kort rad).
+let synkUpptagen = false, synkIgen = false;
+async function synka(tyst) {
+  if (!MOLN_PA || !konto()) return;
+  if (synkUpptagen) { synkIgen = true; return; }   // kör en gång till när den här är klar
+  synkUpptagen = true;
+  if (!tyst) synkStatus("Synkar…");
+  try {
+    const deras = await lasMolnet();
+    let andrade = 0;
+    if (deras) { andrade = slaIhop(deras); ritaOm(); }
+    await skrivMolnet(synkPaket());
+    lagra("danska-synk-senast", new Date().toISOString());
+    const fran = deras && deras.fran && andrade ? " (från " + deras.fran + ")" : "";
+    synkStatus("☁️ Inloggad som " + konto().mejl + ". Sparat i molnet " + narText(new Date().toISOString()) + " ✓" +
+               (andrade ? " " + andrade + " ord uppdaterade" + fran + "." : ""));
+  } catch (e) {
+    if (konto()) synkStatus("⚠️ " + felText(e) + " Framstegen finns kvar här i webbläsaren.");
+    else synkStatus("⚠️ " + felText(e));
+  }
+  synkUpptagen = false;
+  if (synkIgen) { synkIgen = false; synka(true); }
+}
+
+// Automatisk sparning 10 sekunder efter ditt senaste svar (en gång per paus, inte per ord).
+// registrera() i avsnitt 2 anropar synkSnart() efter varje svar.
+let synkTimer = null;
+function synkSnart() {
+  if (!SYNK_AUTO || !MOLN_PA || !konto()) return;
+  clearTimeout(synkTimer);
+  synkTimer = setTimeout(() => { synkTimer = null; synka(true); }, 10000);
+}
+// Stänger du fliken eller byter app medan en sparning väntar? Spara direkt.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden" && synkTimer) {
+    clearTimeout(synkTimer);
+    synkTimer = null;
+    synka(true);
+  }
+});
+
+// ---------- Knapparna i menyn ----------
+const kontoForm = document.getElementById("konto-form");
+const mejlFalt = document.getElementById("konto-mejl");
+const losenFalt = document.getElementById("konto-losen");
+
+// Visar rätt knappar beroende på om du är inloggad eller inte
+function visaKonto() {
+  const k = konto();
+  document.getElementById("konto-utloggad").hidden = !MOLN_PA || Boolean(k);
+  document.getElementById("konto-inloggad").hidden = !MOLN_PA || !k;
+  if (k) kontoForm.hidden = true;
+  if (!MOLN_PA) synkStatus("Dina framsteg sparas automatiskt i den här webbläsaren. (Inloggning är inte påslagen på sidan än.)");
+  else if (!k) synkStatus("Dina framsteg sparas automatiskt i den här webbläsaren. Vill du öva på flera enheter, eller vara säker på att inget försvinner om du rensar webbläsaren? Skapa ett gratis konto. Det är helt frivilligt.");
+  else if (hamta("danska-synk-senast")) synkStatus("☁️ Inloggad som " + k.mejl + ". Senast sparat i molnet " + narText(hamta("danska-synk-senast")) + ".");
+  else synkStatus("☁️ Inloggad som " + k.mejl + ".");
+}
+
+document.getElementById("konto-visa-form").onclick = () => {
+  kontoForm.hidden = !kontoForm.hidden;
+  if (!kontoForm.hidden) mejlFalt.focus();
+};
+
+// Gemensamt för Logga in och Skapa konto
+async function kontoKnapp(ny) {
+  const mejl = mejlFalt.value.trim(), losen = losenFalt.value;
+  if (!mejl || !losen) { synkStatus("Skriv mejladress och lösenord."); return; }
+  if (ny && losen.length < 6) { synkStatus("Lösenordet måste vara minst 6 tecken."); return; }
+  synkStatus(ny ? "Skapar kontot…" : "Loggar in…");
+  try {
+    await loggaIn(mejl, losen, ny);
+  } catch (e) { synkStatus("⚠️ " + felText(e)); return; }
+  losenFalt.value = "";
+  visaKonto();
+  synka(false);      // slå ihop det du har här med det som redan ligger i molnet
+}
+// submit = Enter i formuläret eller klick på "Logga in"
+kontoForm.onsubmit = e => { e.preventDefault(); kontoKnapp(false); };
+document.getElementById("konto-skapa").onclick = () => kontoKnapp(true);
+
+// Glömt lösenordet: Firebase skickar ett mejl med en länk där man väljer ett nytt
+document.getElementById("konto-glomt").onclick = async () => {
+  const mejl = mejlFalt.value.trim();
+  if (!mejl) { synkStatus("Skriv din mejladress först, klicka sedan Glömt lösenordet igen."); mejlFalt.focus(); return; }
+  try {
+    await firebase(INLOGG + "sendOobCode?key=" + FB.apiKey, { requestType: "PASSWORD_RESET", email: mejl });
+  } catch (e) {
+    if (e.message === "natet" || e.message === "INVALID_EMAIL" || e.message.startsWith("TOO_MANY")) {
+      synkStatus("⚠️ " + felText(e)); return;
+    }
+  }
+  // Samma svar oavsett om kontot finns, så att ingen kan testa vilka mejl som har konto
+  synkStatus("Om det finns ett konto för " + mejl + " kommer ett mejl med en länk för nytt lösenord. Kolla skräpposten också.");
+};
+
+document.getElementById("konto-synka").onclick = () => synka(false);
+
+document.getElementById("konto-logga-ut").onclick = async () => {
+  clearTimeout(synkTimer); synkTimer = null;
+  await synka(true);   // spara det sista innan vi loggar ut
+  const rensa = confirm("Du loggas ut. Dina framsteg finns kvar i molnet.\n\n" +
+    "Vill du också ta bort framstegen från den här webbläsaren? Välj OK på en dator som andra använder, " +
+    "Avbryt om det är din egen.");
+  glomKontot();
+  if (rensa) {
+    SPARNYCKLAR.forEach(n => { try { localStorage.removeItem(n); } catch (e) {} });
+    location.reload();
+  }
+};
+
+document.getElementById("konto-radera").onclick = async () => {
+  if (!confirm("Radera kontot och allt som sparats i molnet? Det går inte att ångra.\n\n" +
+               "Framstegen i den här webbläsaren finns kvar.")) return;
+  clearTimeout(synkTimer); synkTimer = null;
+  synkStatus("Raderar…");
+  try {
+    await databas("DELETE");                               // först framstegen i molnet
+    await firebase(INLOGG + "delete?key=" + FB.apiKey, { idToken: await giltigBiljett() });  // sedan kontot
+  } catch (e) {
+    // Firebase vill att man loggat in nyligen för att få radera kontot
+    if (e.message === "CREDENTIAL_TOO_OLD_LOGIN_AGAIN") {
+      glomKontot();
+      synkStatus("Av säkerhetsskäl: logga in igen och klicka Radera kontot direkt efteråt.");
+    } else synkStatus("⚠️ " + felText(e));
+    return;
+  }
+  glomKontot();
+  synkStatus("Kontot och framstegen i molnet är borttagna. Det du har här i webbläsaren finns kvar.");
+};
+
+visaKonto();
+
+// =====================================================================
+// 9. FIRANDET (när du klarar en nivå och 10 nya ord låses upp)
+// =====================================================================
+// Ett stearinljus tänds, gnistor flyger och du ser de 10 nya orden.
+// Klick, Enter eller Esc stänger.
+let festOppen = false;
+function fira() {
+  if (festOppen) return;
+  festOppen = true;
+  clearTimeout(autoTimer);
+  const nya = ORD.slice(Math.max(0, framsteg.upplasta - NYA_PER_OMGANG), framsteg.upplasta);
+  const ruta = document.createElement("div");
+  ruta.id = "fest";
+  ruta.setAttribute("role", "dialog");
+  ruta.setAttribute("aria-label", "Ny nivå");
+
+  // Gnistorna: 8 st, var och en åt sitt håll (--x) och med lite olika fördröjning
+  let gnistor = "";
+  for (let i = 0; i < 8; i++) {
+    gnistor += '<span class="gnista" style="--x:' + (i * 22 - 77) + 'px; animation-delay:' +
+               (0.8 + i * 0.17).toFixed(2) + 's"></span>';
+  }
+  ruta.innerHTML =
+    '<div class="scen">' +
+      '<div class="ljus"><span class="sken"></span><span class="laga"></span>' +
+      '<span class="veke"></span><span class="stearin"></span>' + gnistor + '</div>' +
+      '<p class="fest-titel">Godt klaret!</p>' +
+      '<p class="fest-text">Nivå ' + (niva() - 1) + ' klar · ' + nya.length + ' nya ord upplåsta</p>' +
+      '<div class="fest-ord"></div>' +
+      '<button class="primar">Fortsätt (Enter)</button>' +
+    '</div>';
+  // Orden läggs in med textContent (säkert, ord.js kan innehålla vilka tecken som helst)
+  const ordRuta = ruta.querySelector(".fest-ord");
+  nya.forEach(o => {
+    const s = document.createElement("span");
+    const b = document.createElement("b"); b.textContent = o.da;
+    const i = document.createElement("i"); i.textContent = " " + o.sv;
+    s.append(b, i);
+    ordRuta.append(s);
+  });
+  document.body.append(ruta);
+  ruta.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, easing: "ease" });
+
+  const knappen = ruta.querySelector("button");
+  if (document.activeElement) document.activeElement.blur();   // så att Enter inte går till skrivfältet
+  setTimeout(() => knappen.focus(), 50);
+
+  function stang() {
+    if (!festOppen) return;
+    festOppen = false;
+    document.removeEventListener("keydown", tangent);
+    // Tonas bort med JavaScript (Firefox-säkert, se avslutaIntro)
+    const tona = ruta.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: "ease", fill: "forwards" });
+    tona.onfinish = () => { ruta.style.display = "none"; requestAnimationFrame(() => ruta.remove()); };
+    const falt = innehall.querySelector("input");
+    if (falt) falt.focus({ preventScroll: true });
+  }
+  function tangent(e) {
+    if (e.key === "Enter" || e.key === "Escape" || e.key === " ") { e.preventDefault(); stang(); }
+  }
+  ruta.addEventListener("click", stang);
+  document.addEventListener("keydown", tangent);
+}
+
 // STARTSKOTT: har du redan klarat alla upplåsta ord låses nästa omgång upp direkt.
 const startUpplast = forsokLasaUpp();
 document.getElementById("meddelande").textContent = startUpplast.trim();
@@ -1334,6 +2093,8 @@ byggTeman();
 uppdateraMenyEtikett();
 nastaFraga();
 korIntro();
+// Inloggad? Hämta det senaste från molnet när sidan öppnas
+if (SYNK_AUTO && MOLN_PA && konto()) setTimeout(() => synka(true), 1500);
 </script>
 </body>
 </html>
