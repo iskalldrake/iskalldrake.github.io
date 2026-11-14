@@ -40,34 +40,42 @@
         <a class="prova-kort" href="varldskarta/index.html">
           <span class="ikon" aria-hidden="true">🌍</span>
           <h3>Världskartan</h3>
-          <p>Ett 3D-klot du kan snurra. Quiz om länder, huvudstäder och hav.</p>
+          <p>Ett 3D-klot du kan snurra, i tre teman: Natt, Atlas och Arktis.
+             Utforska ett land i taget eller kör quiz om länder, huvudstäder och hav.</p>
           <span class="knapp">Spela →</span>
         </a>
 
         <a class="prova-kort" href="danska/index.html">
           <span class="ikon" aria-hidden="true">🇩🇰</span>
           <h3>Danska ord</h3>
-          <p>Min egen lärapp för danska: skriv, quiz, flashcards och survivor.</p>
+          <p>Min egen lärapp för danska med 1000 ord: skriv, quiz, flashcards, tidspress och survivor.
+             Skapa ett konto om du vill spara framstegen mellan enheter. Det är frivilligt.</p>
           <span class="knapp">Öva →</span>
         </a>
       </div>
     </section>
 
     <!-- ===== PROJEKT: ett article-kort per projekt =====
-         Nytt projekt? Kopiera ett helt <article> ... </article> och ändra texten. -->
+         Nytt projekt? Kopiera ett helt <article> ... </article> och ändra texten.
+         Numret är projektets nummer i min egen projektlista, därför hoppar numren ibland. -->
     <section id="projekt">
       <h2>Mina projekt</h2>
+      <!-- Ärlig rad om var koden finns och hur projekten byggs. Ändra fritt. -->
+      <p class="under">Danska och världskartan går att prova här ovanför. De andra är övningsprojekt
+         i mitt privata repo, så här står bara vad de gör. Jag bygger dem tillsammans med AI
+         och testar, felsöker och ändrar dem själv.</p>
 
       <div class="kort-rutnat">
 
         <article class="kort">
           <p class="nummer">01</p>
           <h3>Filsorterare</h3>
-          <p>Python-skript som flyttar filer till mappar efter filtyp (bilder, dokument, video).
-             Kan ta med lösa mappar och bara röra filer som är äldre än ett visst antal timmar. Inget raderas.</p>
-          <p class="lardom"><strong>Jag lärde mig:</strong> pathlib, så att samma kod funkar på Windows och Ubuntu, och att testa på påhittade filer först.</p>
-          <p class="taggar">Python · pathlib · terminal</p>
-          <p class="status klar">Fungerar</p>
+          <p>Python-skript som sorterar en rörig mapp efter filtyp. Version 2 visar först vad det
+             tänker göra, sparar en logg så att allt går att ångra, lägger exakta kopior i en egen mapp
+             och kan sortera bilder och video per månad. Inget raderas.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> pathlib, att planera innan man rör filer, JSON-loggar och unittest.</p>
+          <p class="taggar">Python · pathlib · unittest</p>
+          <p class="status pagar">Version 2 testas</p>
         </article>
 
         <article class="kort">
@@ -103,32 +111,88 @@
         <article class="kort">
           <p class="nummer">08</p>
           <h3>Danska ord</h3>
-          <p>Lärapp i webbläsaren med 100 ord som låses upp tio åt gången, lådor 0–5,
-             teman och dagsstreak. <a href="danska/index.html">Prova den här</a>.</p>
-          <p class="lardom"><strong>Jag lärde mig:</strong> JavaScript, localStorage och att felsöka animationer som bara blinkade i Firefox.</p>
-          <p class="taggar">HTML · CSS · JavaScript</p>
-          <p class="status pagar">Byggs ut</p>
+          <p>Lärapp i webbläsaren med 1000 ord som låses upp tio åt gången, lådor 0–5,
+             teman, dagsstreak och ett läge för svåra ord. Ett frivilligt konto sparar framstegen i molnet.
+             <a href="danska/index.html">Prova den här</a>.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> JavaScript, localStorage, inloggning med Firebase och regler som gör att var och en bara når sin egen data.</p>
+          <p class="taggar">HTML · CSS · JavaScript · Firebase</p>
+          <p class="status klar">Används</p>
         </article>
 
         <article class="kort">
           <p class="nummer">09</p>
           <h3>Klickbar världskarta</h3>
           <p>Kartquiz på ett 3D-klot, byggt med riktig kartdata från Natural Earth.
-             Ett Python-skript gör om rådatan till en fil som sidan läser. <a href="varldskarta/index.html">Prova den här</a>.</p>
-          <p class="lardom"><strong>Jag lärde mig:</strong> virtuella miljöer och pip, GeoJSON och att rita kartor med d3-geo.</p>
+             Version 2 har tre teman, en faktaruta för varje land och ett läge där du övar på dina missar.
+             <a href="varldskarta/index.html">Prova den här</a>.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> virtuella miljöer och pip, GeoJSON, att rita kartor med d3-geo och teman med CSS-variabler.</p>
           <p class="taggar">JavaScript · d3-geo · Python</p>
-          <p class="status pagar">Byggs ut</p>
+          <p class="status klar">Version 2</p>
         </article>
 
         <article class="kort">
           <p class="nummer">20</p>
           <h3>LoL Replay</h3>
-          <p>Windows-app som spelar in mina League of Legends-matcher automatiskt med OBS,
+          <p>Windows-app som spelar in mina League of Legends-matcher med OBS,
              döper filen efter matchen och gör YouTube-kapitel och en egen miniatyrbild.
              Har inbyggd videospelare och matchhistorik.</p>
           <p class="lardom"><strong>Jag lärde mig:</strong> API:er, WebSocket, trådar (så att fönstret inte laggar) och bildbehandling med Pillow.</p>
           <p class="taggar">Python · tkinter · OBS · API</p>
-          <p class="status klar">Används</p>
+          <p class="status pagar">Robust inspelning testas</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">21</p>
+          <h3>Helpdesk-simulatorn</h3>
+          <p>Ett felsökningsspel i webbläsaren. Du jobbar på supporten hos ett låtsasföretag
+             och löser 25 ärenden med Windows-kommandon som ipconfig och ping.
+             Poängen räknas efter CompTIA:s sex felsökningssteg.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> hur IP, DHCP och DNS hänger ihop, och att ett fel ofta bara är en inställning som har ändrats.</p>
+          <p class="taggar">JavaScript · felsökning · CompTIA A+</p>
+          <p class="status pagar">Testas</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">22</p>
+          <h3>E-bokshyllan</h3>
+          <p>Python-program som läser titel och författare ur e-böcker (epub, pdf, mobi med flera),
+             hittar dubbletter, sorterar böckerna i mappar och bygger en bokhylla som webbsida.
+             Allt går att ångra och inget skrivs över.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> hur filformat ser ut på insidan, och att bygga en webbsida från Python.</p>
+          <p class="taggar">Python · filformat · HTML</p>
+          <p class="status pagar">Testas</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">23</p>
+          <h3>LoL-coachen</h3>
+          <p>Ett tillägg till LoL Replay som läser min matchhistorik och letar mönster:
+             vilka champions som går bäst, om jag spelar sämre efter flera förluster i rad
+             och vad jag kan träna på. Resultatet blir fyra bildsidor.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> grundläggande statistik, att tio matcher inte bevisar något, och att API:er har gränser för hur ofta man får fråga.</p>
+          <p class="taggar">Python · statistik · API</p>
+          <p class="status pagar">Testas</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">24</p>
+          <h3>Nätverkslabbet</h3>
+          <p>Ett nätverk i webbläsaren där man ser paketen åka: ARP, ping, DHCP, DNS och NAT.
+             20 uppdrag där man felsöker trasiga nät med Windows-kommandon, ett läge där man
+             bygger eget nät och en subnät-räknare.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> subnät, vad routern gör och hur ett paket tar sig fram steg för steg.</p>
+          <p class="taggar">JavaScript · nätverk · CompTIA A+</p>
+          <p class="status pagar">Testas</p>
+        </article>
+
+        <article class="kort">
+          <p class="nummer">25</p>
+          <h3>Terminal-dojon</h3>
+          <p>En låtsasterminal i webbläsaren där jag övar bash, PowerShell och git med 23 uppdrag.
+             Klarade uppdrag ger nya bälten, från vitt till svart. Inget på den riktiga datorn kan gå sönder.</p>
+          <p class="lardom"><strong>Jag lärde mig:</strong> skillnaden mellan bash och PowerShell, rör (pipes) och hur git sparar ändringar.</p>
+          <p class="taggar">JavaScript · bash · PowerShell · git</p>
+          <p class="status pagar">Testas</p>
         </article>
 
       </div>
@@ -178,6 +242,7 @@
           <li><span>10</span> kapitel i min egen studiebok</li>
           <li><span>187</span> provfrågor med förklaringar</li>
           <li><span>192</span> flashcards</li>
+          <li><span>25</span> supportärenden att lösa</li>
         </ul>
       </div>
 
@@ -189,6 +254,7 @@
         <li>PowerShell och Windows</li>
         <li>Ubuntu och bash</li>
         <li>Nätverk</li>
+        <li>Felsökning</li>
         <li>Användning av AI</li>
         <li>Danska</li>
       </ul>
@@ -198,7 +264,9 @@
     <section id="tidslinje">
       <h2>Tidslinje</h2>
       <ol class="tidslinje">
-        <li><time datetime="2026-11-12">12 nov 2026</time> Flyttade alla projekt till en ny disk och lade in världskartan och danska-appen här.</li>
+        <li><time datetime="2026-11-14">14 nov 2026</time> Danska-appen fick 1000 ord och frivillig inloggning, och världskartan kom i version 2. Nätverkslabbet och Terminal-dojon blev färdigbyggda.</li>
+        <li><time datetime="2026-11-13">13 nov 2026</time> Byggde E-bokshyllan och LoL-coachen.</li>
+        <li><time datetime="2026-11-12">12 nov 2026</time> Flyttade alla projekt till en ny disk och lade in världskartan och danska-appen här. Byggde Helpdesk-simulatorn.</li>
         <li><time datetime="2026-11-10">10 nov 2026</time> Min A+-studiebok blev klar: alla 10 kapitel och 187 provfrågor.</li>
         <li><time datetime="2026-11-04">4 nov 2026</time> LoL Replay fick matchhistorik från LoL-klientens API.</li>
         <li><time datetime="2026-10-29">29 okt 2026</time> LoL Replay spelade in min första match helt av sig själv.</li>
